@@ -1,0 +1,74 @@
+{
+  "round_source": "https://github.com/Warren2060/ChillRound/releases/tag/v3.200",
+  "comic_source": "https://github.com/google/fonts/tree/main/ofl/zcoolkuaile",
+  "license": "OFL-1.1",
+  "conversion": "WOFF2, renamed family, UI subset plus complete fallback",
+  "fonts": {
+    "homework-round-regular.woff2": {
+      "family": "Homework Round",
+      "style": "Regular",
+      "bytes": 2612224,
+      "source_sha256": "7ccfc2cd0e971edeac7f65516df8db379f0f84d0d8ff79ee4dfe377956418d3b",
+      "characters": 14304,
+      "core_file": "homework-round-regular.core.woff2",
+      "core_bytes": 75616,
+      "core_characters": 428,
+      "digit_advances": {
+        "0": 613,
+        "1": 450,
+        "2": 613,
+        "3": 613,
+        "4": 613,
+        "5": 613,
+        "6": 613,
+        "7": 613,
+        "8": 613,
+        "9": 613
+      }
+    },
+    "homework-round-bold.woff2": {
+      "family": "Homework Round",
+      "style": "Bold",
+      "bytes": 2887960,
+      "source_sha256": "f2c4f9295d9d04a1eb6392ae3c51ecf2a9ffab355a45c6686eeec5eede3381ec",
+      "characters": 14304,
+      "core_file": "homework-round-bold.core.woff2",
+      "core_bytes": 81592,
+      "core_characters": 428,
+      "digit_advances": {
+        "0": 613,
+        "1": 450,
+        "2": 613,
+        "3": 613,
+        "4": 613,
+        "5": 613,
+        "6": 613,
+        "7": 613,
+        "8": 613,
+        "9": 613
+      }
+    },
+    "homework-comic.woff2": {
+      "family": "Homework Comic",
+      "style": "Regular",
+      "bytes": 871668,
+      "source_sha256": "812a6fc1fe54b6d73a419245c32dfeba8aa33104d5be90d1cf6af082007cb71d",
+      "characters": 7053,
+      "core_file": "homework-comic.core.woff2",
+      "core_bytes": 38792,
+      "core_characters": 428,
+      "digit_advances": {
+        "0": 666,
+        "1": 364,
+        "2": 625,
+        "3": 659,
+        "4": 718,
+        "5": 690,
+        "6": 694,
+        "7": 506,
+        "8": 706,
+        "9": 580
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "project_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17",
+  "commit_sha": "de57ca0a67ae13f12907e4cdfbf6958b55f86464",
+  "deployment_id": "appgdep_6ae71894cf2c8191828c7a24899da815",
+  "version_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17~appgver_bf9d8be412088191a73e5a9efbdb60c2",
+  "status": "succeeded",
+  "url": "https://homework-clock-demo-caihker.wujiyu2002.chatgpt.site",
+  "published_at": "2026-11-01T10:46:50.488423+00:00",
+  "audience": "owner-private",
+  "offline_build": "76d5297fee0c03352e9d",
+  "verification": {
+    "tests": "63 passed",
+    "first_install_failure_and_manual_retry": "passed in local browser with HTTP 403 fixture",
+    "hosting_html_rewrite": "passed in local browser with injected HTML comment",
+    "server_stopped_offline_restart": "passed in local browser",
+    "deployment_service": "succeeded",
+    "ipad": "awaiting user retry"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "project_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17",
+  "commit_sha": "854bc2431e5a3654d182b3ee0e0f5aea0b739517",
+  "deployment_id": "appgdep_6ae73df8dc3081919b70e452fb68be7c",
+  "version_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17~appgver_4428d1357dd88191aba00b99a6e7ea94",
+  "status": "succeeded",
+  "url": "https://homework-clock-demo-caihker.wujiyu2002.chatgpt.site",
+  "published_at": "2026-11-01T13:26:23.339881+00:00",
+  "audience": "owner-private",
+  "offline_build": "515fe4040d19d5a8a3b7",
+  "offline_resources": 74,
+  "verification": {
+    "tests": "169 passed",
+    "browser_final": "final-code D/E snapshots; 3 windows kept open, one click reloaded all into next version",
+    "data_preservation": "4 synthetic plans, 7 audio SHA-256, paused session, break end, fixed deadline and solid companion identical before/after",
+    "cancelled_update": "dirty sibling blocks; draft retained; clean initiating page adopts latest saved data and later saves do not overwrite it",
+    "race_and_deadline": "new window during intent write rejected; 20s transaction deadline; 30s startup barrier; 45s page unlock",
+    "unavailable_storage": "actual app functions tested against throwing localStorage getter; safe failure retained data/draft",
+    "offline": "source stopped; updated app reload and data unchanged",
+    "real_ipad": "not directly operated",
+    "deployment_service": "succeeded"
+  },
+  "bootstrap": "v1.1.3 and older need one final ordinary close/reopen to install this update protocol"
+}

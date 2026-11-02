@@ -1,0 +1,21 @@
+{
+  "project_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17",
+  "commit_sha": "2f1e31948ee4e567e668783ab75a38ce28d8d520",
+  "deployment_id": "appgdep_6ae723558a10819181565856b92ed067",
+  "version_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17~appgver_893f0d6ce99c8191a216ddba0d3e869c",
+  "status": "succeeded",
+  "url": "https://homework-clock-demo-caihker.wujiyu2002.chatgpt.site",
+  "published_at": "2026-11-01T11:32:45.535725+00:00",
+  "audience": "owner-private",
+  "offline_build": "987d744aa1e650f7a42d",
+  "verification": {
+    "tests": "87 passed",
+    "recorder_lifecycle": "9 synthetic tests passed; real microphone not accessed",
+    "backup_migration_and_all_scene_audio": "14 tests passed",
+    "browser_default_scene_preview_routes": "all 7 passed",
+    "browser_settings_tabs_save_and_responsive_layout": "passed",
+    "browser_new_icons": "all loaded with category-flat-byg paths",
+    "browser_synthetic_file_import": "not completed: browser file chooser lost tab session",
+    "deployment_service": "succeeded"
+  }
+}

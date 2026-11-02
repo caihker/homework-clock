@@ -1,0 +1,22 @@
+{
+  "project_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17",
+  "commit_sha": "2d3816aea25ede87f8175ad787f5484dfae8efdf",
+  "deployment_id": "appgdep_6ae746e8a4d48191b498197b6289d4b4",
+  "version_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17~appgver_4f68a998f7c081919dc1c6c73c975f8b",
+  "status": "succeeded",
+  "url": "https://homework-clock-demo-caihker.wujiyu2002.chatgpt.site",
+  "published_at": "2026-11-01T14:04:32.701450+00:00",
+  "audience": "owner-private",
+  "offline_build": "09f48df16d46e1f631b3",
+  "offline_resources": 76,
+  "verification": {
+    "tests": "178 passed",
+    "visible_size": "all-frame alpha bounds; original unchanged; solid max-axis and center aligned for 6 moods, chooser and reduced-motion still",
+    "completion": "selected date study tasks only, manual completed flags, empty and partial/full/undo states",
+    "browser": "1194x834 and 834x1194; choice previews, animation direction/rest/celebration, refresh persistence verified",
+    "offline": "preview source stopped; 100% completion and solid choice retained",
+    "one_click": "existing test build updated and retained selection and completion",
+    "independent_review": "bounds geometry and actual app completion/undo/date/copy handlers passed",
+    "deployment_service": "succeeded"
+  }
+}

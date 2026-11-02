@@ -1,0 +1,56 @@
+{
+  "voice": "zh-CN-YunxiNeural",
+  "tool": "edge-tts",
+  "runtime": "static-mp3",
+  "clips": {
+    "start": {
+      "text": "小皮开工了！先做一道，进入状态就容易啦。",
+      "rate": "+6%",
+      "pitch": "+12Hz",
+      "duration": 4.704,
+      "bytes": 37869
+    },
+    "break-end": {
+      "text": "休息好啦，我们接着来。",
+      "rate": "+3%",
+      "pitch": "+10Hz",
+      "duration": 2.616,
+      "bytes": 21165
+    },
+    "complete": {
+      "text": "搞定一项！耶，又向前一步！",
+      "rate": "+10%",
+      "pitch": "+18Hz",
+      "duration": 3.792,
+      "bytes": 30573
+    },
+    "end": {
+      "text": "这段时间到啦，看看完成得怎么样。",
+      "rate": "+0%",
+      "pitch": "+8Hz",
+      "duration": 3.576,
+      "bytes": 28845
+    },
+    "break-start": {
+      "text": "休息五分钟，伸个懒腰吧。",
+      "rate": "-2%",
+      "pitch": "+8Hz",
+      "duration": 3.288,
+      "bytes": 26541
+    },
+    "schedule-start": {
+      "text": "计划的时间到啦，准备好就开始吧。",
+      "rate": "+4%",
+      "pitch": "+10Hz",
+      "duration": 3.552,
+      "bytes": 28653
+    },
+    "ending-soon": {
+      "text": "还有五分钟，准备慢慢收尾啦。",
+      "rate": "-2%",
+      "pitch": "+8Hz",
+      "duration": 3.408,
+      "bytes": 27501
+    }
+  }
+}

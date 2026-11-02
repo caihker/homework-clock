@@ -1,0 +1,18 @@
+{
+  "project_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17",
+  "commit_sha": "31622c6874df0a83e75c9e91386da71190a72be1",
+  "deployment_id": "appgdep_6ae752e66adc819183266aba2504c85e",
+  "version_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17~appgver_e5b16946bf548191b51388c2032110a0",
+  "status": "succeeded",
+  "url": "https://homework-clock-demo-caihker.wujiyu2002.chatgpt.site",
+  "published_at": "2026-11-01T14:55:40.963821+00:00",
+  "audience": "owner-private",
+  "offline_build": "cd447825ccf5b583d1e1",
+  "verification": {
+    "tests": "182 passed",
+    "presets": "学习/吃饭/运动/游戏 exact text; study/life/life/play; chosen start/end retained",
+    "browser": "all 4 clicked, saved and reopened",
+    "independent_review": "actual handler and obsolete-key callsite review passed",
+    "deployment_service": "succeeded"
+  }
+}

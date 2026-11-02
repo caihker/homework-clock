@@ -1,0 +1,22 @@
+/* Self-hosted, licensed comic lettering with a readable rounded UI face. */
+:root {
+  --font-ui:"Homework Round","PingFang SC","Hiragino Sans GB",sans-serif;
+  --font-display:"Homework Comic","Homework Round","PingFang SC",sans-serif;
+  font-family:var(--font-ui);
+  font-weight:400;
+}
+.wordmark, .focus-brand, h1, h2, .empty-state h3,
+.current-task h2, .schedule-header h2, .modal-heading h2,
+.time-picker-modal .modal-heading h2, .focus-body h2, #finish-dialog h2 {
+  font-family:var(--font-display);
+  font-weight:400;
+  letter-spacing:.02em;
+}
+.task-name, .button, .text-button, .field, .type-field legend,
+.recording-card strong, .setting-row strong, .voice-pack-card strong,
+.schedule-more summary, .record-details > summary {
+  font-weight:700;
+}
+.task-name { letter-spacing:.01em; }
+.button, .text-button { letter-spacing:.015em; }
+/* Timer digits keep the existing rounded, tabular clock face. */

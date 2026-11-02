@@ -1,0 +1,11 @@
+.local-data-details { margin: 14px 0; border-top: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--ink); padding: 4px 0; }
+.local-data-details > summary { cursor: pointer; min-height: 48px; display: flex; align-items: center; justify-content: space-between; font-size: 18px; font-weight: 700; list-style: none; }
+.local-data-details > summary::-webkit-details-marker { display: none; }
+.local-data-details > summary::after { content: '+'; font-size: 26px; }
+.local-data-details[open] > summary::after { content: '−'; }
+.local-data-details .settings-note { margin-block: 12px; }
+.backup-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.backup-actions .button { flex: 1 1 160px; }
+.backup-result { font-size: 16px; line-height: 1.6; overflow-wrap: anywhere; }
+.backup-result:empty { display: none; }
+.save-state.save-failed { color: #9b283d; font-weight: 700; }

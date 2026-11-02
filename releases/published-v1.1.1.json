@@ -1,0 +1,19 @@
+{
+  "project_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17",
+  "commit_sha": "b21b2e5bc07d0738b2e7303991d66d630746644e",
+  "deployment_id": "appgdep_6ae72ba4e5348191b1c0836e9bd7b39e",
+  "version_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17~appgver_63237e4a2e708191b4c53e041690a275",
+  "status": "succeeded",
+  "url": "https://homework-clock-demo-caihker.wujiyu2002.chatgpt.site",
+  "published_at": "2026-11-01T12:08:11.904191+00:00",
+  "audience": "owner-private",
+  "offline_build": "5b7d09b4bff9e4cd353c",
+  "offline_resources": 62,
+  "verification": {
+    "round1": "107 tests passed; browser plan CRUD, completion undo, copy, settings, focus, backup export, offline reload",
+    "round2": "107 tests passed under America/Los_Angeles; frozen files unchanged; independent app handler integration checks; fresh-origin portrait and cross-year UI; real backup import and offline reopen",
+    "offline_integrity": "62/62 hashes and byte counts match",
+    "actual_ipad_microphone": "not accessed; real-device authorization, capture and acoustic quality need device verification",
+    "deployment_service": "succeeded"
+  }
+}

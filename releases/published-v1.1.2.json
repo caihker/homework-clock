@@ -1,0 +1,22 @@
+{
+  "project_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17",
+  "commit_sha": "6ec856dbad6857019ab59b618831bccce89ea1f8",
+  "deployment_id": "appgdep_6ae7315bfba88191a2d1fe2026f7b4d5",
+  "version_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17~appgver_775795b5dd008191bb124baa427439f0",
+  "status": "succeeded",
+  "url": "https://homework-clock-demo-caihker.wujiyu2002.chatgpt.site",
+  "published_at": "2026-11-01T12:32:34.437542+00:00",
+  "audience": "owner-private",
+  "offline_build": "d18d7032cb78c7b95821",
+  "offline_resources": 63,
+  "verification": {
+    "tests": "117 passed",
+    "format_regression": "10 new tests; Safari MIME spacing/quotes, native recorder option fallback, scene selection and all-scene backup roundtrip",
+    "browser_native_conversion": "real Blob/FileReader with 3 Safari MIME variants; no microphone accessed",
+    "browser_text_editing": "actual click and sequential typing, focus, preview, draft return, save and reopen; landscape, portrait and 1194x430 constrained-height save visibility",
+    "offline_reload": "source stopped; new text editor and saved values retained",
+    "independent_review": "read-only parser and real app handler review passed",
+    "actual_ipad": "native microphone and keyboard not tested; user should verify after update",
+    "deployment_service": "succeeded"
+  }
+}

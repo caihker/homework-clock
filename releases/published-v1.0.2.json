@@ -1,0 +1,20 @@
+{
+  "project_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17",
+  "commit_sha": "6b7080a579a98ba472ddc0931e34b7682bc82d3c",
+  "deployment_id": "appgdep_6ae71c2802d881918ec9fba07c6da632",
+  "version_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17~appgver_842fd7f01ad08191ade66cefab2f3391",
+  "status": "succeeded",
+  "url": "https://homework-clock-demo-caihker.wujiyu2002.chatgpt.site",
+  "published_at": "2026-11-01T11:02:06.791561+00:00",
+  "audience": "owner-private",
+  "offline_build": "9797fe06de81cc898752",
+  "timezone": "GMT+8",
+  "verification": {
+    "tests": "67 passed",
+    "device_timezone_independence": "UTC, America/Los_Angeles, Europe/Berlin, Asia/Shanghai passed",
+    "browser_date_navigation": "Oct 31 to Nov 1 to Nov 2, Jan 1 backwards to Dec 31 passed",
+    "browser_arrow_hit_targets": "landscape and portrait centers and edges passed",
+    "current_header_independent_of_selected_plan_day": "passed",
+    "deployment_service": "succeeded"
+  }
+}

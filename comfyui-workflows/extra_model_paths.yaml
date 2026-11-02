@@ -1,0 +1,3 @@
+turtle_shared:
+  base_path: /Users/caihker/ComfyUI-Shared/models
+  checkpoints: checkpoints

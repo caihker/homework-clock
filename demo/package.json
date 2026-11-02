@@ -1,0 +1,12 @@
+{
+  "name": "homework-clock-demo",
+  "private": true,
+  "version": "1.2.4",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "build": "node scripts/build-offline.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --check dist/app.mjs && node --check dist/completion-stats.mjs && node --check dist/update-storage.mjs && node --check dist/update-guard.mjs && node --check dist/update-session.mjs && node --check dist/companion.mjs && node --check dist/audio-format.mjs && node --check dist/plan-view.mjs && node --check dist/reminder-events.mjs && node --check dist/core.mjs && node --check dist/mascot.mjs && node --check dist/time-picker.mjs && node --check dist/session-timer.mjs && node --check dist/backup.mjs && node --check dist/pwa.mjs && node --check dist/scene-voices.mjs && node --check dist/scene-voice-settings.mjs && node --check dist/offline-client.mjs && node --check dist/sw.js && node scripts/build-offline.mjs --check"
+  }
+}

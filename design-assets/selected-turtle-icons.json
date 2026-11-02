@@ -1,0 +1,10 @@
+{
+  "theme": "flat-blue-yellow-green",
+  "directory": "turtle-category-icons-flat-byg",
+  "icons": {
+    "learning": "learning.png",
+    "life": "life.png",
+    "play": "play.png"
+  },
+  "notes": "用户指定采用最新蓝黄绿扁平版：学习恢复原始蓝色，生活黄色，娱乐绿色；保留光头造型、不同动作和手柄按键朝内。"
+}

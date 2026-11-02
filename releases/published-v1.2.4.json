@@ -1,0 +1,22 @@
+{
+  "project_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17",
+  "commit_sha": "8bc6f32b041440bbc080ac1ea21bcfa53b81dc4e",
+  "deployment_id": "appgdep_6ae76c4274dc8191a1a0d095148de9db",
+  "version_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17~appgver_d21270b1def881919155341bfec8befd",
+  "status": "succeeded",
+  "url": "https://homework-clock-demo-caihker.wujiyu2002.chatgpt.site",
+  "published_at": "2026-11-01T16:43:53.320537+00:00",
+  "audience": "owner-private",
+  "offline_build": "a5bd277ad3c729e6dbd7",
+  "verification": {
+    "tests": "199 passed, 0 failed, 0 skipped",
+    "fixes": [
+      "backup import race and stale callbacks",
+      "accurate unsaved recording draft conflict message",
+      "slow activation and evicted activation-intent recovery"
+    ],
+    "browser": "two-window v1.2.3 to v1.2.4 upgrade; final build upgraded; 5 plans and custom text preserved; completion 1/3, solid pet retained after server-off reload; landscape and portrait",
+    "limitations": "No physical iPad microphone or native keyboard used",
+    "deployment_service": "succeeded"
+  }
+}

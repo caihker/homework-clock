@@ -1,0 +1,15 @@
+.offline-panel { padding:14px 0 8px; }
+.offline-state { display:flex; align-items:center; gap:9px; margin:0 0 8px; font-size:18px; }
+.offline-dot { width:11px; height:11px; flex:none; border:2px solid currentColor; border-radius:50%; background:#ffd66d; }
+.offline-panel[data-state="ready"] .offline-dot { background:#86cca0; }
+.offline-panel[data-state="error"] .offline-dot { background:#ffb096; }
+.offline-detail,.offline-update,.offline-install p { color:var(--muted,#67746d); font-size:16px; line-height:1.65; margin:6px 0 10px; }
+.offline-update { color:var(--ink,#293a35); }
+.offline-panel button { min-height:44px; }
+.offline-panel button:disabled { opacity:.65; cursor:wait; }
+.offline-error-detail { margin:8px 0; font-size:15px; }
+.offline-error-detail summary { cursor:pointer; min-height:44px; display:flex; align-items:center; }
+.offline-error-detail p { overflow-wrap:anywhere; color:var(--muted,#67746d); line-height:1.6; }
+.offline-install { margin-top:10px; }
+.offline-install summary { cursor:pointer; width:fit-content; padding:9px 0; font-size:17px; }
+@media (display-mode:standalone) { .offline-install { display:none; } }

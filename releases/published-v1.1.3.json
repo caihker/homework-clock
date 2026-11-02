@@ -1,0 +1,21 @@
+{
+  "project_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17",
+  "commit_sha": "8a7d2eb29108065429ad03b9b7f38c0942adce91",
+  "deployment_id": "appgdep_6ae735f3e7508191bb0f3d23a435008e",
+  "version_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17~appgver_b792f637f2948191b68b4386a4753f3f",
+  "status": "succeeded",
+  "url": "https://homework-clock-demo-caihker.wujiyu2002.chatgpt.site",
+  "published_at": "2026-11-01T12:52:10.736295+00:00",
+  "audience": "owner-private",
+  "offline_build": "386f1e80471e406ffe47",
+  "offline_resources": 71,
+  "verification": {
+    "tests": "121 passed",
+    "companion": "both styles retained; solid directions, rest, celebration, saved selection reload verified in browser",
+    "update_flow": "old active page shows waiting version; close all origin tabs and reopen activates v1.1.3, retains saved selection and plan data",
+    "update_button": "ready, checking, duplicate-click, waiting and failure recovery reviewed using actual UI handlers",
+    "offline": "source stopped; v1.1.3 and solid selection retained after reload",
+    "real_ipad": "not directly operated",
+    "deployment_service": "succeeded"
+  }
+}

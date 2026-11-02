@@ -1,0 +1,6 @@
+.voice-pack-card { margin-bottom:18px; padding:14px; border:2px solid var(--ink); border-radius:13px 11px 14px 11px; background:var(--blue); }
+.voice-pack-card strong { font-size:14px; }
+.voice-pack-card p { margin:4px 0 0; color:var(--muted); font-size:12px; }
+.voice-samples { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.voice-samples .button { min-height:44px; flex:1; padding-inline:12px; }
+.voice-samples .icon { width:16px; height:16px; }

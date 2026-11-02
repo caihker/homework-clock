@@ -1,0 +1,4 @@
+.task-start { flex: 0 0 44px; width: 44px; min-height: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid var(--ink); border-radius: 9px 7px 9px 7px; background: var(--purple); box-shadow: 2px 2px 0 var(--ink); }
+.task-start:hover { background: var(--yellow); }
+.task-start:active { transform: translate(1px,1px); box-shadow: 1px 1px 0 var(--ink); }
+.task-start svg.icon { width: 17px; height: 17px; }

@@ -1,0 +1,32 @@
+# Local operating-system and editor files
+.DS_Store
+._*
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Installed dependencies, caches and temporary output
+node_modules/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.log
+*.tmp
+coverage/
+.cache/
+tmp/
+artifacts/
+
+# Credentials, local configuration and personal backup exports
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.codex/
+.agents/
+*作业时钟备份*.json
+
+# Build output is intentionally versioned: demo/dist is the complete PWA.
+# Design assets, Blender sources, workflow files and legacy release ZIP stay tracked.

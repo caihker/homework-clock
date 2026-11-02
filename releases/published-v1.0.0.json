@@ -1,0 +1,19 @@
+{
+  "project_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17",
+  "commit_sha": "f4870608cd72ea8f433b603a9c2b3a20a73993cf",
+  "deployment_id": "appgdep_6ae70bd813208191aad508166bc973b1",
+  "version_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17~appgver_4713796360bc8191ba229c2178924c14",
+  "status": "succeeded",
+  "url": "https://homework-clock-demo-caihker.wujiyu2002.chatgpt.site",
+  "published_at": "2026-11-01T09:52:32.486743+00:00",
+  "audience": "owner-private",
+  "offline_build": "cd7b40e5293657dffd92",
+  "verification": {
+    "local_tests": "42 passed",
+    "local_offline_restart": "passed",
+    "deployment_service": "succeeded",
+    "hosted_browser": "not completed: browser connection timed out",
+    "hosted_asset_check": "not completed: private access returned HTTP 403",
+    "ipad_install_and_audio": "requires real device verification"
+  }
+}

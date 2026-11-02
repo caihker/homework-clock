@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#fffdf5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="作业时钟">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="description" content="作业时钟，让学习、生活和小小的快乐各有时间。">
+  <title>作业时钟 · 我的一天</title>
+  <link rel="icon" href="./assets/turtle-icon.png" type="image/png">
+  <link rel="apple-touch-icon" sizes="180x180" href="./assets/pwa/apple-touch-icon.png">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="preload" href="./assets/fonts/homework-round-regular.core.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="./assets/fonts/homework-round-bold.core.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="./assets/fonts/homework-comic.core.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="./font-faces.css?v=1">
+  <link rel="stylesheet" href="./styles.css?v=1.0.2">
+  <link rel="stylesheet" href="./time-picker.css?v=0.7.0">
+  <link rel="stylesheet" href="./session-controls.css?v=0.4.1">
+  <link rel="stylesheet" href="./voice-pack.css?v=1">
+  <link rel="stylesheet" href="./ipad.css?v=1">
+  <link rel="stylesheet" href="./fonts.css?v=1">
+  <link rel="stylesheet" href="./category-icons.css?v=byg-1">
+  <link rel="stylesheet" href="./local-use.css?v=1">
+  <link rel="stylesheet" href="./pwa.css?v=1.0.1">
+  <link rel="stylesheet" href="./scene-voice-settings.css?v=1.1.0">
+  <link rel="stylesheet" href="./settings.css?v=1.1.0">
+  <link rel="stylesheet" href="./companion-size.css?v=1.2.1">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="wordmark" href="./"><img class="brand-icon" src="./assets/turtle-icon.png" alt=""><span>作业时钟</span></a>
+      <span class="header-date" id="greeting-date" title="今天 · 北京时间 GMT+8"></span>
+      <div class="topbar-actions">
+        <button id="demo-clock" class="demo-clock" aria-label="北京时间与演示时间" title="北京时间 · GMT+8"><span class="status-dot"></span><span id="clock-mode">北京</span><span data-icon="chevron-down"></span></button>
+        <button id="settings-button" class="icon-button settings-button" aria-label="家庭设置" data-icon="settings"></button>
+        <button class="button primary add-button" id="add-task"><span data-icon="plus"></span>安排</button>
+      </div>
+    </header>
+    <main>
+      <h1 class="sr-only">我的一天</h1>
+      <div class="dashboard">
+        <section class="current-card" aria-labelledby="current-title">
+          <div class="current-top"><span class="current-label"><span data-icon="sparkles"></span><span id="current-kicker">当前安排</span></span><span class="session-badge" id="session-badge">准备开始</span></div>
+          <div class="current-task"><h2 id="current-title">语文预习</h2><p id="current-range">10:00 — 12:00</p></div>
+          <div class="timer-wrap"><div class="timer-caption" id="timer-caption">距离结束</div><div class="big-timer" id="main-timer">01<span>:</span>40<small>:00</small></div></div>
+          <div class="turtle-journey" id="main-journey"><button type="button" class="turtle-turn" aria-label="小乌龟向右，点击调头" title="点击小乌龟调头"><img class="progress-turtle" src="./assets/turtle-mascot.png" alt=""></button><div class="progress-track" role="progressbar" aria-label="当前任务进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="main-progress"></span></div></div>
+          <button class="button start-button" id="start-focus"><span data-icon="play"></span><span id="start-label">开始专注</span><span class="button-arrow" data-icon="arrow-right"></span></button>
+          <div class="pet-card" id="pet-card"><img class="pet-illustration" src="./assets/turtle-mascot.png" alt="小乌龟陪你开工"><div class="speech-bubble"><span id="current-footnote">小皮开工了</span><button class="listen-button" id="listen-family" aria-label="听听家人的提醒" data-icon="volume"></button></div></div>
+        </section>
+        <section class="schedule-panel" aria-labelledby="schedule-title">
+          <div class="schedule-header"><h2 id="schedule-title">今日安排 <span class="count-pill" id="task-count">4</span></h2><div class="date-navigation"><button class="icon-button" id="prev-day" aria-label="前一天" data-icon="chevron-left"></button><label class="date-picker-label"><span id="selected-date-label">11月1日</span><input id="day-picker" type="date" aria-label="选择日期"></label><button class="icon-button" id="next-day" aria-label="后一天" data-icon="chevron-right"></button></div></div>
+          <div class="timeline" id="timeline"></div>
+          <div class="schedule-bottom"><button class="add-timeline text-button" id="add-timeline"><span data-icon="plus"></span>加一项</button><details class="schedule-more"><summary>更多<span data-icon="chevron-down"></span></summary><div class="more-menu"><div class="filter-group" role="group" aria-label="按活动类型筛选"><button class="filter active" data-filter="all">全部</button><button class="filter" data-filter="study">学习</button><button class="filter" data-filter="life">生活</button><button class="filter" data-filter="play">娱乐</button></div><button id="copy-day" class="text-button"><span data-icon="copy"></span>复制这一天</button></div></details></div>
+        </section>
+      </div>
+      <div class="save-state" id="save-state"><span data-icon="check"></span>已保存在本机</div>
+    </main>
+  </div>
+  <dialog id="task-dialog" class="modal task-modal">
+    <form id="task-form">
+      <div class="modal-heading"><div><h2 id="task-dialog-title">添加安排</h2></div><button type="button" class="icon-button close-modal" aria-label="关闭" data-icon="x"></button></div>
+      <input type="hidden" id="task-id">
+      <label class="field">准备做什么<input id="task-title" maxlength="60" placeholder="例如：学习" required autocomplete="off"></label>
+      <div class="template-chips" id="template-chips"><button type="button" data-template="study">学习</button><button type="button" data-template="meal">吃饭</button><button type="button" data-template="sport">运动</button><button type="button" data-template="game">游戏</button></div>
+      <div class="time-fields"><div class="field"><span>开始时间</span><input type="hidden" id="task-start"><button type="button" class="time-trigger" data-time-field="task-start" data-time-label="开始时间" aria-haspopup="dialog" aria-expanded="false" aria-controls="time-picker-dialog"><span data-time-value>10:00</span><span data-icon="chevron-down"></span></button></div><span>—</span><div class="field"><span>结束时间</span><input type="hidden" id="task-end"><button type="button" class="time-trigger" data-time-field="task-end" data-time-label="结束时间" aria-haspopup="dialog" aria-expanded="false" aria-controls="time-picker-dialog"><span data-time-value>10:30</span><span data-icon="chevron-down"></span></button></div></div>
+      <fieldset class="type-field"><legend>这是一段什么时间</legend><div class="type-options"><label><input type="radio" name="task-type" value="study" checked><span><span class="category-choice-icon" data-category="study"></span>学习</span></label><label><input type="radio" name="task-type" value="life"><span><span class="category-choice-icon" data-category="life"></span>生活</span></label><label><input type="radio" name="task-type" value="play"><span><span class="category-choice-icon" data-category="play"></span>娱乐</span></label></div></fieldset>
+      <div id="form-error" class="form-error" role="alert"></div>
+      <div class="modal-actions"><button type="button" class="button danger-text" id="delete-task">删除安排</button><button type="button" class="button secondary close-modal">取消</button><button class="button primary" type="submit">保存安排<span data-icon="check"></span></button></div>
+    </form>
+  </dialog>
+  <dialog id="time-picker-dialog" class="modal time-picker-modal" aria-labelledby="time-picker-title">
+    <div class="modal-heading"><h2 id="time-picker-title">开始时间</h2><button type="button" class="icon-button close-modal" aria-label="关闭时间选择" data-icon="x"></button></div>
+    <div class="time-picker-preview"><span id="time-picker-value" aria-live="polite">10:00</span></div>
+    <section class="time-picker-section"><h3 id="hours-label">小时</h3><div class="time-option-grid hours-grid" role="radiogroup" aria-labelledby="hours-label"></div></section>
+    <section class="time-picker-section"><h3 id="minutes-label">分钟</h3><div class="time-option-grid minutes-grid" role="radiogroup" aria-labelledby="minutes-label"></div></section>
+    <div class="modal-actions"><button type="button" class="button secondary" id="cancel-time">取消</button><button type="button" class="button primary" id="confirm-time">选好了<span data-icon="check"></span></button></div>
+  </dialog>
+  <dialog id="settings-dialog" class="modal settings-modal">
+    <div class="modal-heading"><h2>家庭小设置</h2><button class="icon-button close-modal" aria-label="关闭" data-icon="x"></button></div>
+    <div class="settings-tabs" role="tablist" aria-label="设置分类">
+      <button type="button" role="tab" id="settings-tab-sound" aria-controls="settings-panel-sound" aria-selected="true" data-settings-tab="sound">声音</button>
+      <button type="button" role="tab" id="settings-tab-pet" aria-controls="settings-panel-pet" aria-selected="false" tabindex="-1" data-settings-tab="pet">陪伴</button>
+      <button type="button" role="tab" id="settings-tab-local" aria-controls="settings-panel-local" aria-selected="false" tabindex="-1" data-settings-tab="local">本机</button>
+    </div>
+    <section class="settings-panel" id="settings-panel-sound" role="tabpanel" aria-labelledby="settings-tab-sound" data-settings-panel="sound">
+      <div id="sound-settings-main">
+        <div class="setting-row"><strong>声音提醒</strong><label class="switch"><input type="checkbox" id="sound-enabled"><span></span><span class="sr-only">声音提醒</span></label></div>
+        <div id="scene-voice-settings"></div>
+        <button type="button" class="family-text-entry" id="edit-family-text" aria-controls="family-text-editor"><span>开工文字（可选）</span><span>编辑 ›</span></button>
+      </div>
+      <section id="family-text-editor" class="family-text-editor" aria-label="编辑开工文字" hidden>
+        <button type="button" class="text-button" id="close-family-text">‹ 返回声音设置</button>
+        <label class="field" for="family-code">我们的开工暗号</label><input class="family-text-input" type="text" id="family-code" maxlength="40" placeholder="小皮开工了" autocomplete="off" spellcheck="false" enterkeyhint="next">
+        <label class="field" for="family-message">家人的一句提醒</label><textarea class="family-text-input" id="family-message" maxlength="120" rows="2" placeholder="先做一道，进入状态就容易啦。" spellcheck="false"></textarea>
+        <button type="button" class="button secondary small" id="preview-family-text">试听文字</button>
+        <p class="settings-note">改好后点击下方“保存设置”。手动开工有录音时优先播放录音；恢复该情景的默认语音后，使用自定义文字。</p>
+      </section>
+    </section>
+    <section class="settings-panel" id="settings-panel-pet" role="tabpanel" aria-labelledby="settings-tab-pet" data-settings-panel="pet" hidden>
+      <section class="homework-summary" aria-labelledby="homework-summary-title">
+        <div class="homework-summary-heading"><h3 id="homework-summary-title">作业完成情况</h3><span id="homework-summary-date"></span></div>
+        <div class="homework-summary-values"><div><strong id="homework-summary-count">0 / 0</strong><span>已完成作业</span></div><div><strong id="homework-summary-percent">0%</strong><span>完成率</span></div></div>
+        <div class="homework-summary-track" id="homework-summary-progress" role="progressbar" aria-label="作业完成率" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+        <p id="homework-summary-note">这天还没有学习作业</p>
+      </section>
+      <div class="setting-row"><div><strong>让小乌龟陪着我</strong><p>专注时安静陪伴，完成后一起开心。</p></div><label class="switch"><input type="checkbox" id="pet-enabled"><span></span><span class="sr-only">宠物陪伴</span></label></div>
+      <fieldset class="companion-options"><legend>选择陪伴形象</legend><p>小乌龟会在进度条上陪你前进，点击它可以调头。</p><div class="companion-grid">
+<label class="companion-option"><input type="radio" name="companion" value="original" checked><img data-companion-preview="original" src="./assets/turtle-mascot.png" alt="" width="112" height="112"><strong>原版乌龟</strong><span>熟悉的卡通伙伴</span></label>
+<label class="companion-option"><input type="radio" name="companion" value="solid"><img data-companion-preview="solid" src="./assets/motion-solid/ready.webp" alt="" width="112" height="112"><strong>立体乌龟</strong><span>圆润的立体伙伴</span></label>
+</div></fieldset>
+    </section>
+    <section class="settings-panel" id="settings-panel-local" role="tabpanel" aria-labelledby="settings-tab-local" data-settings-panel="local" hidden>
+      <section class="local-data-details"><h3>本机与备份</h3>
+        <div id="offline-panel"></div>
+        <div class="backup-actions"><button type="button" class="button secondary small" id="export-backup"><span data-icon="download"></span>导出备份</button><button type="button" class="button secondary small" id="import-backup"><span data-icon="upload"></span>恢复备份</button></div>
+        <input type="file" id="backup-file" accept=".json,application/json" hidden>
+        <p class="backup-result" id="backup-result" role="status" aria-live="polite"></p>
+        <p class="settings-note">备份包含计划、记录和全部情景录音。数据保存在这台设备。</p>
+      </section>
+      <details class="record-details"><summary>学习记录</summary><div class="daily-summary"><div><strong id="completed-count">0 / 2</strong><p>学习安排已完成</p></div><div><strong id="focused-count">0 分钟</strong><p>记录的专注时间</p></div></div></details>
+      <div class="settings-shortcuts"><button class="text-button" id="today-nav">回到今天</button><button class="text-button" id="templates-nav">常用计划</button></div>
+      <button class="text-button settings-reset" id="reset-demo">重新体验示例</button>
+    </section>
+    <div class="modal-actions settings-save"><span class="settings-version">v1.2.4</span><button class="button primary" id="save-settings">保存设置<span data-icon="check"></span></button></div>
+  </dialog>
+  <dialog id="clock-dialog" class="modal compact-modal"><div class="modal-heading"><div><h2>演示时间</h2></div><button class="icon-button close-modal" aria-label="关闭" data-icon="x"></button></div><div class="clock-presets"><button data-clock="10:20"><span>10:20</span>语文预习</button><button data-clock="12:30"><span>12:30</span>午饭时间</button><button data-clock="14:55"><span>14:55</span>游戏收尾</button><button data-clock="15:40"><span>15:40</span>数学试卷</button></div><button class="button secondary full-width" id="use-real-time">使用实际时间</button></dialog>
+  <dialog id="copy-dialog" class="modal compact-modal"><div class="modal-heading"><h2>复制一天的安排</h2><button class="icon-button close-modal" aria-label="关闭" data-icon="x"></button></div><p class="muted">复制计划名称和时间，完成记录从新的一天开始。</p><label class="field">复制到<input id="copy-date" type="date" required></label><div class="form-error" id="copy-error" role="alert"></div><div class="modal-actions"><button class="button secondary close-modal">取消</button><button class="button primary" id="confirm-copy">确认复制</button></div></dialog>
+  <dialog id="confirm-dialog" class="modal compact-modal"><div class="modal-heading"><h2 id="confirm-title">确认操作</h2></div><p class="muted" id="confirm-message"></p><div class="modal-actions"><button class="button secondary" id="confirm-cancel">取消</button><button class="button primary" id="confirm-ok">确认</button></div></dialog>
+  <dialog id="finish-dialog" class="modal compact-modal"><img class="finish-mascot" src="./assets/turtle-mascot.png" alt="小乌龟陪你收尾"><h2 id="finish-title">语文预习做完了吗？</h2><div class="finish-actions"><button class="button primary" id="finish-done"><span data-icon="check"></span>做完了</button><button class="button secondary" id="finish-extend">再做 10 分钟</button><button class="text-button" id="finish-later">先记着，稍后安排</button></div><div class="form-error" id="finish-error" role="alert"></div></dialog>
+  <dialog id="focus-dialog" class="focus-dialog"><div class="focus-header"><button class="focus-back" id="close-focus"><span data-icon="arrow-left"></span>返回今天</button><span class="focus-brand"><img class="focus-brand-icon" src="./assets/turtle-icon.png" alt="">作业时钟</span><button class="focus-sound" id="focus-sound" aria-label="切换声音提醒" data-icon="volume"></button></div><div class="focus-body"><div class="focus-eyebrow" id="focus-status">专注这一件</div><h2 id="focus-title">语文预习</h2><div class="focus-time" id="focus-timer">01:40:00</div><p class="focus-end" id="focus-end">计划在 12:00 结束</p><div class="focus-controls"><button class="button focus-pause" id="pause-session"><span data-icon="pause"></span><span>休息 5 分钟</span></button><button class="button cream" id="complete-session"><span data-icon="check"></span>我完成了</button></div><div class="focus-pet turtle-journey" id="focus-journey"><button type="button" class="turtle-turn" aria-label="小乌龟向右，点击调头" title="点击小乌龟调头"><img src="./assets/turtle-mascot.png" alt="小乌龟安静陪伴"></button><div class="progress-track" role="progressbar" aria-label="专注进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="focus-progress"></span></div></div></div></dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"><span id="toast-message"></span><button id="toast-undo">撤销</button></div>
+  <dialog id="update-progress-dialog" class="modal compact-modal" aria-label="正在更新作业时钟"><h2>正在更新…</h2><p class="muted">计划、录音和计时会保留，马上回来。</p></dialog>
+  <audio id="reminder-audio" preload="auto" hidden></audio>
+  <script type="module" src="./app.mjs?v=1.2.4"></script>
+  <script type="module" src="./pwa.mjs?v=1.2.4"></script>
+</body>
+</html>

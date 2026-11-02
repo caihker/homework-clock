@@ -1,0 +1,26 @@
+{
+  "walking-left": {
+    "frames": 24,
+    "minimum_alpha_margin_px": 50
+  },
+  "walking-right": {
+    "frames": 24,
+    "minimum_alpha_margin_px": 50
+  },
+  "waiting": {
+    "frames": 24,
+    "minimum_alpha_margin_px": 50
+  },
+  "ready": {
+    "frames": 24,
+    "minimum_alpha_margin_px": 50
+  },
+  "rest": {
+    "frames": 24,
+    "minimum_alpha_margin_px": 50
+  },
+  "happy-jump": {
+    "frames": 48,
+    "minimum_alpha_margin_px": 49
+  }
+}

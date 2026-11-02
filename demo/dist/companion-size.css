@@ -1,0 +1,9 @@
+/* Reframe existing images in CSS; preserve their original animation and hitbox. */
+img.companion-art,
+.turtle-turn img.companion-art,
+.focus-pet .turtle-turn img.companion-art {
+  transform-origin:center;
+  transform:scaleX(var(--companion-facing,1)) translate(var(--companion-x,0%),var(--companion-y,0%)) scale(var(--companion-scale,1));
+}
+.companion-art.face-right,.companion-art.face-right-static { --companion-facing:-1; }
+.companion-option img.companion-art { flex:none; }

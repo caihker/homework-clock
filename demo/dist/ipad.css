@@ -1,0 +1,187 @@
+/* A shared reading scale for tablet-sized windows. Keep the comic palette,
+   borders and illustrations; give text and touch controls room to breathe. */
+@media (min-width: 700px) {
+  :root { --tablet-body:18px; --tablet-small:16px; --tablet-caption:14px; --tablet-action:20px; font-size:18px; }
+  .app-shell, main { max-width:1440px; }
+  .topbar { min-height:104px; padding:24px 32px; gap:24px; }
+  .wordmark { font-size:28px; gap:14px; }
+  .brand-icon { width:56px; height:56px; border-radius:16px 13px 16px 13px; }
+  .header-date { font-size:var(--tablet-small); }
+  .topbar-actions { gap:14px; }
+  .demo-clock { min-height:50px; padding:10px 14px; font-size:var(--tablet-small); gap:9px; }
+  .demo-clock [data-icon] svg.icon { width:20px; height:20px; }
+  .status-dot { width:8px; height:8px; }
+  .icon-button { width:48px; min-width:48px; height:48px; }
+  .button { min-height:54px; padding:12px 22px; font-size:var(--tablet-action); gap:10px; }
+  .button.small { min-height:48px; font-size:var(--tablet-body); padding:10px 16px; }
+  .add-button { min-height:50px; padding:10px 18px; }
+  svg.icon, .button svg.icon, .icon-button svg.icon, .text-button svg.icon,
+  .current-label svg.icon, .button-arrow svg.icon, .start-button > .icon:first-child,
+  .focus-back svg.icon, .focus-sound svg.icon, .type-options svg.icon,
+  .task-start svg.icon, .task-edit svg.icon, .listen-button svg.icon,
+  .voice-samples .icon { width:24px; height:24px; }
+
+  main { padding:12px 32px 28px; }
+  .dashboard { grid-template-columns:minmax(0,.86fr) minmax(0,1.14fr); gap:26px; }
+  .current-card { padding:28px; }
+  .current-top { gap:14px; }
+  .current-label { font-size:var(--tablet-body); gap:9px; }
+  .session-badge { font-size:var(--tablet-caption); padding:5px 10px; border-radius:7px; }
+  .current-task { margin-top:30px; }
+  .current-task h2 { font-size:clamp(36px,3.5vw,46px); line-height:1.3; }
+  .current-task p { margin-top:10px; font-size:20px; }
+  .timer-wrap { margin:30px 0 16px; }
+  .timer-caption { font-size:var(--tablet-small); margin-bottom:6px; }
+  .big-timer { font-size:clamp(80px,7.8vw,108px); letter-spacing:-3px; }
+  .progress-track { height:10px; }
+  .turtle-journey { padding-top:72px; margin-inline:8px; }
+  .turtle-turn { width:84px; height:84px; bottom:4px; }
+  .start-button { min-height:62px; margin-top:28px; font-size:22px; }
+  .pet-card { min-height:84px; padding-top:24px; justify-content:center; }
+  .speech-bubble { max-width:100%; font-size:var(--tablet-body); padding:10px 12px 10px 18px; gap:12px; }
+  .listen-button { width:44px; height:44px; flex-basis:44px; }
+  .task-check::before, .task-edit::before, .listen-button::before { content:none; }
+
+  .schedule-panel { padding:24px 22px 16px; }
+  .schedule-header { gap:16px; margin-bottom:16px; }
+  .schedule-header h2 { font-size:26px; gap:10px; }
+  .count-pill { min-width:30px; height:30px; padding:0 7px; font-size:var(--tablet-small); border-radius:8px; }
+  .date-navigation .icon-button { width:44px; min-width:44px; height:48px; }
+  .date-navigation .icon-button svg.icon { width:24px; height:24px; }
+  .date-picker-label { min-width:92px; height:48px; font-size:var(--tablet-small); }
+  .timeline-item { min-height:96px; gap:10px; padding:12px 8px; border-radius:13px; }
+  .time-column { flex-basis:62px; gap:4px; }
+  .start-time { font-size:20px; }
+  .end-time { font-size:var(--tablet-small); }
+  .timeline-rail { flex-basis:38px; }
+  .timeline-dot { width:38px; height:40px; border-width:2px; border-radius:11px 9px 11px 8px; }
+  .timeline-dot svg.icon { width:24px; height:24px; }
+  .task-content { gap:6px; padding:4px 0; min-height:48px; }
+  .task-name { font-size:24px; line-height:1.4; }
+  .task-meta { gap:8px; min-height:20px; }
+  .type-label, .task-status { font-size:var(--tablet-caption); }
+  .task-status.live { padding:1px 5px; }
+  .task-check, .task-edit, .task-start { flex:0 0 44px; width:44px; height:44px; min-height:44px; }
+  .task-check { border-width:2px; border-radius:10px; }
+  .task-check svg.icon { width:26px; height:26px; }
+  .task-edit { border-radius:9px; }
+  .gap-row { min-height:22px; height:auto; padding-left:10px; gap:10px; }
+  .gap-line { width:48px; }
+  .gap-label { font-size:var(--tablet-caption); line-height:1.4; }
+  .gap-label .icon { width:16px; height:16px; }
+  .schedule-bottom { min-height:58px; margin-top:16px; padding-top:12px; }
+  .text-button, .add-timeline { min-height:48px; font-size:var(--tablet-body); gap:8px; padding:8px 4px; }
+  .schedule-more summary { min-height:48px; font-size:var(--tablet-body); padding:10px 5px; gap:8px; }
+  .schedule-more summary [data-icon] svg.icon { width:20px; height:20px; }
+  .more-menu { min-width:300px; padding:16px; top:54px; }
+  .filter { min-height:48px; font-size:var(--tablet-small); padding:10px 13px; }
+  .save-state { font-size:var(--tablet-caption); margin-top:20px; gap:7px; }
+  .save-state svg.icon { width:18px; height:18px; }
+  .empty-state { min-height:400px; gap:20px; font-size:var(--tablet-body); }
+  .empty-state h3 { font-size:26px; }
+
+  .modal { width:min(680px,calc(100vw - 64px)); padding:32px; max-height:calc(100dvh - 48px); }
+  .settings-modal { width:min(740px,calc(100vw - 64px)); }
+  .compact-modal { width:min(560px,calc(100vw - 64px)); }
+  .modal-heading { align-items:center; margin-bottom:26px; }
+  .modal-heading h2, .time-picker-modal .modal-heading h2 { font-size:30px; padding-top:0; }
+  .modal-heading .icon-button { margin:0 -6px 0 0; }
+  .field { font-size:var(--tablet-body); gap:10px; margin-bottom:24px; }
+  .field input, .field textarea { min-height:56px; padding:12px 16px; font-size:20px; border-radius:10px; }
+  .template-chips { gap:10px; margin-bottom:26px; }
+  .template-chips button { min-height:46px; font-size:var(--tablet-small); padding:9px 13px; border-radius:8px; }
+  .time-fields { gap:14px; grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr); }
+  .type-field legend { font-size:var(--tablet-body); margin-bottom:12px; }
+  .type-options { gap:12px; }
+  .type-options label > span { min-height:56px; font-size:var(--tablet-body); gap:10px; border-radius:10px; }
+  .form-error, .muted { font-size:var(--tablet-small); }
+  .modal-actions { gap:14px; margin-top:28px; }
+  .danger-text { font-size:var(--tablet-small); }
+  .recording-card { padding:20px; margin-bottom:22px; }
+  .recording-card strong, .setting-row strong, .voice-pack-card strong { font-size:20px; }
+  .recording-card p, .setting-row p, .voice-pack-card p,
+  .settings-note, .daily-summary p { font-size:var(--tablet-small); line-height:1.6; }
+  .recording-actions { gap:14px; margin-top:16px; }
+  .recording-actions .icon-button { width:48px; min-width:48px; height:48px; }
+  .setting-row { padding:20px 0; gap:24px; }
+  .switch { flex-basis:64px; width:64px; height:48px; }
+  .switch > span:not(.sr-only) { position:absolute; top:6px; width:64px; height:36px; border-width:2px; border-radius:20px; }
+  .switch > span:not(.sr-only)::before { width:26px; height:26px; top:3px; left:3px; }
+  .switch input:checked + span:not(.sr-only)::before { transform:translateX(28px); }
+  .record-details > summary { min-height:48px; font-size:var(--tablet-body); }
+  .record-details > summary::after { font-size:26px; }
+  .daily-summary strong { font-size:34px; }
+  .daily-summary strong span { font-size:var(--tablet-small); }
+  .settings-shortcuts { gap:28px; }
+  .voice-pack-card { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:20px; margin-bottom:24px; }
+  .voice-samples { margin-top:0; gap:10px; flex-wrap:nowrap; }
+  .voice-samples .button { flex:none; min-width:86px; min-height:50px; padding:10px 14px; }
+  .clock-presets { gap:16px; }
+  .clock-presets button { min-height:108px; padding:18px; gap:6px; font-size:var(--tablet-body); }
+  .clock-presets button span { font-size:34px; }
+  #finish-dialog h2 { font-size:30px; }
+  .finish-mascot { width:136px; height:136px; }
+  .finish-actions { gap:16px; }
+
+  .time-trigger { min-height:62px; padding:12px 16px; font-size:30px; }
+  .time-trigger svg.icon { width:24px; height:24px; }
+  .time-picker-modal { width:min(640px,calc(100vw - 64px)); }
+  .time-picker-preview { font-size:68px; padding:10px 20px; margin-bottom:24px; }
+  .time-picker-preview small, .time-picker-section h3 { font-size:var(--tablet-body); }
+  .time-picker-section h3 { margin-bottom:12px; }
+  .time-option-grid { gap:10px; grid-template-columns:repeat(6,minmax(56px,1fr)); }
+  .hours-grid { grid-template-columns:repeat(7,minmax(56px,1fr)); }
+  .time-option { min-width:56px; min-height:58px; font-size:24px; border-radius:10px 8px 10px 8px; }
+  .time-picker-section + .time-picker-section { margin-top:24px; }
+  .time-picker-modal .modal-actions .button { min-height:54px; min-width:132px; }
+
+  .focus-header { display:grid; grid-template-columns:1fr auto 1fr; gap:24px; padding:max(28px,env(safe-area-inset-top)) 36px 0; }
+  .focus-back, .focus-sound { min-height:52px; padding:10px 16px; font-size:var(--tablet-body); }
+  .focus-back { justify-self:start; }
+  .focus-sound { width:54px; justify-self:end; }
+  .focus-brand { margin-left:0; font-size:24px; gap:12px; }
+  .focus-brand-icon { width:40px; height:40px; border-radius:11px; }
+  .focus-body { flex:1 0 auto; padding:30px 32px 36px; }
+  .focus-eyebrow { font-size:var(--tablet-body); padding:7px 14px; margin-bottom:20px; }
+  .focus-body h2 { font-size:clamp(38px,4vw,52px); }
+  .focus-time { font-size:clamp(108px,13vw,180px); letter-spacing:-5px; padding:2px 34px 6px; margin-top:24px; }
+  .focus-end { font-size:20px; margin-top:22px; }
+  .focus-controls { gap:22px; margin-top:30px; }
+  .focus-controls .button { min-width:200px; min-height:62px; font-size:22px; }
+  .focus-pet.turtle-journey { width:min(560px,80vw); margin:30px 0 0; padding-top:88px; }
+  .focus-pet .turtle-turn { width:100px; height:100px; }
+  .toast { font-size:var(--tablet-body); padding:16px 22px; gap:20px; }
+  .toast button { min-height:44px; font-size:var(--tablet-body); }
+}
+
+/* Portrait tablets get full-width cards, rather than two cramped columns. */
+@media (min-width:700px) and (max-width:999px) {
+  .topbar { flex-wrap:wrap; column-gap:20px; row-gap:14px; padding:24px 28px; }
+  .header-date { display:none; }
+  main { padding:10px 28px 28px; }
+  .dashboard { grid-template-columns:minmax(0,1fr); gap:28px; }
+  .current-card { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); column-gap:24px; row-gap:20px; padding:28px 32px; }
+  .current-top, .current-card > .turtle-journey, .start-button, .pet-card { grid-column:1 / -1; }
+  .current-task { margin:0; align-self:center; }
+  .current-task h2 { font-size:38px; }
+  .timer-wrap { margin:0; align-self:center; }
+  .big-timer { font-size:clamp(68px,9.5vw,92px); }
+  .start-button { margin-top:2px; }
+  .pet-card { padding-top:0; min-height:56px; }
+  .schedule-panel { padding:26px 28px 18px; }
+  .timeline-item { gap:14px; min-height:110px; padding:14px 10px; }
+  .task-name { font-size:26px; }
+}
+
+/* Leave enough room for the largest timer on the smaller landscape iPad. */
+@media (min-width:1000px) and (max-width:1100px) {
+  .topbar { padding-inline:28px; gap:18px; }
+  .header-date { font-size:14px; }
+  main { padding-inline:28px; }
+  .dashboard { gap:22px; grid-template-columns:minmax(0,.84fr) minmax(0,1.16fr); }
+  .current-card { padding:26px 24px; }
+  .big-timer { font-size:80px; }
+  .schedule-panel { padding-inline:18px; }
+  .timeline-item { gap:8px; padding-inline:6px; }
+  .task-name { font-size:22px; }
+}

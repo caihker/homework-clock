@@ -1,0 +1,14 @@
+{
+ "1":{"class_type":"CheckpointLoaderSimple","inputs":{"ckpt_name":"dreamshaper_8.safetensors"}},
+ "2":{"class_type":"CLIPTextEncode","inputs":{"clip":["1",1],"text":"A cute baby turtle mascot, same full-body three-quarter pose and silhouette as the reference, huge rounded golden cream head, large glossy dark brown eyes, peach cheeks, small friendly smile, two pale cream neck stripes, warm caramel brown shell with large simple scutes, short rounded feet, soft 3D clay toy illustration, rounded volume, subtle ambient occlusion, soft warm studio lighting, gentle highlights, satin material, charming polished animated film character, isolated on a plain warm ivory background, full head and feet visible"}},
+ "3":{"class_type":"CLIPTextEncode","inputs":{"clip":["1",1],"text":"photorealistic, realistic reptile, green skin, red ears, sharp teeth, angry, scary, deformed face, small head, extra legs, extra eyes, text, watermark, cluttered background, harsh shadows, metallic, cropped head, cropped feet, flat vector, thick black outline"}},
+ "4":{"class_type":"LoadImage","inputs":{"image":"turtle-original.png"}},
+ "5":{"class_type":"EmptyImage","inputs":{"width":1280,"height":1280,"batch_size":1,"color":16776693}},
+ "6":{"class_type":"InvertMask","inputs":{"mask":["4",1]}},
+ "7":{"class_type":"ImageCompositeMasked","inputs":{"destination":["5",0],"source":["4",0],"x":0,"y":0,"resize_source":true,"mask":["6",0]}},
+ "8":{"class_type":"ImageScale","inputs":{"image":["7",0],"upscale_method":"lanczos","width":640,"height":640,"crop":"disabled"}},
+ "9":{"class_type":"VAEEncode","inputs":{"pixels":["8",0],"vae":["1",2]}},
+ "10":{"class_type":"KSampler","inputs":{"model":["1",0],"positive":["2",0],"negative":["3",0],"latent_image":["9",0],"seed":20261101,"steps":24,"cfg":6.0,"sampler_name":"dpmpp_2m","scheduler":"karras","denoise":0.48}},
+ "11":{"class_type":"VAEDecode","inputs":{"samples":["10",0],"vae":["1",2]}},
+ "12":{"class_type":"SaveImage","inputs":{"images":["11",0],"filename_prefix":"turtle_3d/turtle_reference_048"}}
+}

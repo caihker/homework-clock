@@ -1,0 +1,22 @@
+/* Latest blue/yellow/green flat artwork: learning, life and play. Preserve full transparent silhouettes and the existing layout. */
+.category-icon { display:block; width:100%; height:100%; object-fit:contain; pointer-events:none; user-select:none; -webkit-user-drag:none; }
+.timeline-rail { display:flex; flex:0 0 44px; }
+.timeline-item[data-type] .timeline-dot { width:44px; height:48px; padding:0; border:0; border-radius:0; background:transparent; box-shadow:none; transform:none; }
+.category-choice-icon { display:flex; flex:0 0 40px; width:40px; height:40px; }
+.type-options label > span { min-height:64px; padding:8px 6px; gap:6px; }
+
+@media (min-width:700px) {
+  .timeline-rail { flex-basis:68px; }
+  .timeline-item[data-type] .timeline-dot { width:68px; height:72px; }
+  .category-choice-icon { flex-basis:56px; width:56px; height:56px; }
+  .type-options label > span { min-height:80px; padding:10px 8px; gap:10px; }
+}
+@media (min-width:1000px) and (max-width:1100px) {
+  .timeline-rail { flex-basis:60px; }
+  .timeline-item[data-type] .timeline-dot { width:60px; height:68px; }
+}
+@media (max-width:365px) {
+  .timeline-rail { flex-basis:38px; }
+  .timeline-item[data-type] .timeline-dot { width:38px; height:44px; }
+  .category-choice-icon { flex-basis:32px; width:32px; height:32px; }
+}

@@ -1,0 +1,20 @@
+{
+  "project_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17",
+  "commit_sha": "2beaa8f11824a3f6c2d7a47e186c258923b28360",
+  "deployment_id": "appgdep_6ae7511f1bb88191a5ffa5119685199e",
+  "version_id": "appgprj_6ae6aebef73c8191bae8845daa8fad17~appgver_bc65d526b9d481918b1f4540032c2443",
+  "status": "succeeded",
+  "url": "https://homework-clock-demo-caihker.wujiyu2002.chatgpt.site",
+  "published_at": "2026-11-01T14:48:05.638841+00:00",
+  "audience": "owner-private",
+  "offline_build": "1cedda9fb7d9814ead58",
+  "offline_resources": 76,
+  "verification": {
+    "tests": "182 passed",
+    "time": "start 08:00–21:00; end 08:00–21:50; 10-minute increments; click and keyboard at 21:50 verified",
+    "presets": "all 7 exact labels, names and types checked; existing chosen 21:00–21:50 times retained",
+    "browser": "21:50 science task saved, reloaded and edited; portrait no horizontal overflow",
+    "offline": "source stopped; saved task still editable",
+    "deployment_service": "succeeded"
+  }
+}
