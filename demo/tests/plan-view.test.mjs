@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { dateAtTime } from '../dist/core.mjs';
 import { createSession, pauseSession, resumeSession } from '../dist/session-timer.mjs';
-import { taskProgress, suggestStartMinutes, compactCountdown } from '../dist/plan-view.mjs';
+import { taskProgress, suggestStartMinutes, compactCountdown, nextTask } from '../dist/plan-view.mjs';
 
 const task = { id: 'math', date: '2026-11-01', title: '数学试卷', start: '10:00', end: '12:00', type: 'study' };
 const at = time => dateAtTime(task.date, time).getTime();
@@ -64,4 +64,25 @@ test('day compaction preserves every second without widening distant clocks', ()
   assert.deepEqual(compactCountdown(3599.1), { days: 0, clockSeconds: 3600 });
   assert.deepEqual(compactCountdown(-1), { days: 0, clockSeconds: 0 });
   assert.deepEqual(compactCountdown(NaN), { days: 0, clockSeconds: 0 });
+});
+
+test('the next item follows the current slot and skips completed plans', () => {
+  const lunch = { ...task, id: 'lunch', title: '午饭', start: '12:30', end: '13:30', type: 'life' };
+  const game = { ...task, id: 'game', title: '游戏', start: '14:00', end: '15:00', type: 'play' };
+  const tasks = [game, task, lunch];
+  assert.equal(nextTask(tasks, task.id, at('10:30')).id, 'lunch');
+  assert.equal(nextTask(tasks, lunch.id, at('12:40')).id, 'game');
+  assert.equal(nextTask(tasks, null, at('09:00')).id, 'math');
+  assert.equal(nextTask(tasks, null, at('13:00')).id, 'game');
+  assert.equal(nextTask([{ ...game, completed: true }], null, at('09:00')), null);
+  assert.equal(nextTask([], null, at('09:00')), null);
+});
+
+test('the next item is safe for invalid dates and non-advancing clocks', () => {
+  assert.equal(nextTask([{ ...task, date: 'bad' }], null, at('09:00')), null);
+  assert.equal(nextTask([task], null, NaN), null);
+  assert.equal(nextTask('nope', null, at('09:00')), null);
+  const snapshot = structuredClone([task]);
+  nextTask([task], null, at('09:00'));
+  assert.deepEqual([task], snapshot);
 });

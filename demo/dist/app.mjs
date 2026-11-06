@@ -9,7 +9,7 @@ import { TURTLE_LINES, createVoicePlayer } from './voice-pack.mjs?v=1';
 import { createBackup, parseBackup, MAX_BACKUP_BYTES } from './backup.mjs';
 import { selectSceneVoice, countSceneVoices } from './scene-voices.mjs';
 import { createSceneVoiceSettings } from './scene-voice-settings.mjs';
-import { taskProgress, suggestStartMinutes, compactCountdown } from './plan-view.mjs';
+import { taskProgress, suggestStartMinutes, compactCountdown, nextTask } from './plan-view.mjs';
 import { collectDueReminders } from './reminder-events.mjs';
 import { createUpdateGuard, hasSettingsDraft } from './update-guard.mjs';
 import { createUpdateSession } from './update-session.mjs';
@@ -105,6 +105,7 @@ if (stored.status === 'ok') {
 }
 let filter = 'all';
 let currentId = null;
+let nextTaskId = null;
 let focusTaskId = null;
 let finishTaskId = null;
 let lastTick;
@@ -335,8 +336,8 @@ function showDialog(id) { const el=$(id); if(!el.open) el.showModal(); }
 function confirmAction(title, message, callback) { $('#confirm-title').textContent=title; $('#confirm-message').textContent=message; confirmCallback=callback; showDialog('#confirm-dialog'); }
 $('#confirm-cancel').onclick=()=>closeDialog($('#confirm-dialog'));
 $('#confirm-ok').onclick=()=>{ closeDialog($('#confirm-dialog')); const callback=confirmCallback;confirmCallback=null;callback?.(); };
-$$('.close-modal').forEach(button=>button.onclick=()=>closeDialog(button.closest('dialog')));
-$$('dialog.modal').forEach(d=>d.addEventListener('click',e=>{ if(e.target===d&&!updateLocked){ const b=d.getBoundingClientRect();if(e.clientX<b.left||e.clientX>b.right||e.clientY<b.top||e.clientY>b.bottom)d.close(); } }));
+$$('.close-modal').forEach(button=>button.onclick=()=>{const dialog=button.closest('dialog');if(dialog?.id==='settings-dialog')requestSettingsClose();else closeDialog(dialog);});
+$$('dialog.modal').forEach(d=>d.addEventListener('click',e=>{ if(e.target===d&&!updateLocked){ const b=d.getBoundingClientRect();if(e.clientX<b.left||e.clientX>b.right||e.clientY<b.top||e.clientY>b.bottom){if(d.id==='settings-dialog')requestSettingsClose();else d.close();} } }));
 $('#update-progress-dialog').addEventListener('cancel',event=>event.preventDefault());
 $$('dialog').forEach(d=>d.addEventListener('close',()=>{if($('#toast').parentElement===d)($$('dialog[open]').at(-1)||document.body).append($('#toast'));}));
 
@@ -392,10 +393,20 @@ function render() {
   $('.focus-pet').hidden=!state.settings.pet;
   $('.finish-mascot').hidden=!state.settings.pet;
   $('#copy-day').disabled=!tasks.length;
-  renderTimeline(tasks,current);
+  const upcoming=nextTask(tasks,current?.id,at);
+  nextTaskId=upcoming?.id||null;
+  $('#next-task').hidden=!upcoming;
+  if(upcoming){
+    $('#next-task-title').textContent=upcoming.title;
+    const minutes=Math.max(1,Math.ceil((taskStart(upcoming)-at)/60000));
+    const hours=Math.floor(minutes/60),rest=minutes%60;
+    const when=hours?`${hours} 小时${rest?` ${rest} 分钟`:''}后`:`${minutes} 分钟后`;
+    $('#next-task-time').textContent=`${upcoming.start} · ${when}`;
+  }
+  renderTimeline(tasks,current,nextTaskId);
   updateClocks();
 }
-function renderTimeline(tasks,current) {
+function renderTimeline(tasks,current,nextId) {
   const visible=tasks.filter(t=>filter==='all'||t.type===filter);
   if(!visible.length) { $('#timeline').innerHTML=`<div class="empty-state">${state.settings.pet?'<img class="empty-mascot" src="./assets/turtle-mascot.png" alt="小乌龟陪你安排新的一天">':'<div class="empty-icon">'+icon('sun')+'</div>'}<h3>${tasks.length?'这里还空着':'新的一天，怎么安排？'}</h3><button class="button secondary" data-add>加一项</button></div>`;return; }
   const at=now().getTime();
@@ -403,9 +414,10 @@ function renderTimeline(tasks,current) {
   $('#timeline').innerHTML=visible.map((t,i)=>{
     const running=state.session?.taskId===t.id;
     const live=!t.completed&&t.id===current?.id&&(running||taskStart(t)<=at&&taskEnd(t)>at);
-    const status=t.completed?'已完成':running?(state.session.paused?'休息中':'计时中'):taskEnd(t)<=at&&t.type==='study'?'待确认':'';
+    const nextMark=t.id===nextId;
+    const status=t.completed?'已完成':running?(state.session.paused?'休息中':'计时中'):taskEnd(t)<=at&&t.type==='study'?'待确认':(nextMark?'下一项':'');
     const manualStart=t.id===nextToStart?.id&&t.id!==current?.id?`<button class="task-start" data-start="${escape(t.id)}" aria-label="现在开始：${escape(t.title)}" title="现在开始">${icon('play')}</button>`:'';
-    const item=`<article class="timeline-item ${live?'is-current':''} ${t.completed?'is-completed':''}" data-type="${t.type}"><div class="time-column"><span class="start-time">${t.start}</span><span class="end-time">${t.end}</span></div><div class="timeline-rail"><span class="timeline-dot">${categoryIcon(t.type)}</span></div><button class="task-content" data-edit="${escape(t.id)}" aria-label="编辑${escape(t.title)}"><span class="task-meta"><span class="type-label">${TYPES[t.type]}</span>${status?`<span class="task-status ${live?'live':''}">${status}</span>`:''}</span><span class="task-name">${escape(t.title)}</span></button>${manualStart}<button class="task-check ${t.completed?'checked':''}" data-complete="${escape(t.id)}" aria-label="${t.completed?'撤销完成':'标记完成'}：${escape(t.title)}">${t.completed?icon('check'):''}</button><button class="task-edit" data-edit="${escape(t.id)}" aria-label="编辑${escape(t.title)}">${icon('more')}</button></article>`;
+    const item=`<article class="timeline-item ${live?'is-current':''} ${t.completed?'is-completed':''}" data-type="${t.type}"${t.id===current?.id?' aria-current="step"':''}><div class="time-column"><span class="start-time">${t.start}</span><span class="end-time">${t.end}</span></div><div class="timeline-rail"><span class="timeline-dot">${categoryIcon(t.type)}</span></div><button class="task-content" data-edit="${escape(t.id)}" aria-label="编辑${escape(t.title)}"><span class="task-meta"><span class="type-label">${TYPES[t.type]}</span>${status?`<span class="task-status ${live?'live':''} ${nextMark&&!live?'next':''}">${status}</span>`:''}</span><span class="task-name">${escape(t.title)}</span></button>${manualStart}<button class="task-check ${t.completed?'checked':''}" data-complete="${escape(t.id)}" aria-label="${t.completed?'撤销完成':'标记完成'}：${escape(t.title)}">${t.completed?icon('check'):''}</button><button class="task-edit" data-edit="${escape(t.id)}" aria-label="编辑${escape(t.title)}">${icon('more')}</button></article>`;
     const next=visible[i+1],gap=next?toMinutes(next.start)-toMinutes(t.end):0;
     return item+(filter==='all'&&gap>0?`<div class="gap-row"><span class="gap-line"></span><span class="gap-label">空闲 ${durationLabel(gap)}</span></div>`:'');
   }).join('');
@@ -564,6 +576,7 @@ $('#delete-task').onclick=()=>{
 };
 $('#template-chips').onclick=e=>{const b=e.target.closest('[data-template]');if(b)applyTemplate(b.dataset.template);};
 $('#add-task').onclick=$('#add-timeline').onclick=()=>openTask();
+$('#next-task').onclick=()=>{ if(nextTaskId)openTask(nextTaskId); };
 $('#templates-nav').onclick=()=>{closeDialog($('#settings-dialog'));openTask();$('#template-chips').classList.add('highlight');setTimeout(()=>$('#template-chips').classList.remove('highlight'),1800);};
 $('#timeline').onclick=e=>{
   const edit=e.target.closest('[data-edit]'),complete=e.target.closest('[data-complete]'),start=e.target.closest('[data-start]');
@@ -614,7 +627,7 @@ $('#finish-extend').onclick=()=>{
 function setDate(value) { if(!Number.isFinite(dateAtTime(value).getTime()))return;state.selectedDate=value;filter='all';$$('[data-filter]').forEach(b=>b.classList.toggle('active',b.dataset.filter===filter));persist();render(); }
 function moveDate(amount){const value=shiftDate(state.selectedDate,amount);if(value)setDate(value);}
 $('#prev-day').onclick=()=>moveDate(-1);$('#next-day').onclick=()=>moveDate(1);$('#day-picker').onchange=e=>setDate(e.target.value);
-$('#today-nav').onclick=()=>{closeDialog($('#settings-dialog'));setDate(dateKey(now()));};
+$('#today-nav').onclick=()=>{const go=()=>{closeDialog($('#settings-dialog'));setDate(dateKey(now()));};if(hasUnsavedSettings())confirmAction('放弃未保存的设置？','有尚未保存的录音或改动，关闭后会丢失。',go);else go();};
 $$('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;$$('[data-filter]').forEach(x=>x.classList.toggle('active',x===b));$('.schedule-more').open=false;render();});
 $('#copy-day').onclick=()=>{$('#copy-date').value=shiftDate(state.selectedDate,1);$('#copy-error').textContent='';showDialog('#copy-dialog');};
 $('#confirm-copy').onclick=()=>{
@@ -713,6 +726,19 @@ $('#preview-family-text').onclick=()=>{
   if(text)speak(text);else toast('先输入一句开工文字，再来试听。');
 };
 $('#listen-family').onclick=()=>playStartVoice(state.settings,true);
+function settingsDraft(){
+  if(!$('#settings-dialog').open)return null;
+  return {sound:$('#sound-enabled').checked,pet:$('#pet-enabled').checked,companion:$('[name=companion]:checked')?.value,code:$('#family-code').value,message:$('#family-message').value,voices:sceneVoiceSettings.getVoices()};
+}
+function hasUnsavedSettings(){
+  return Boolean(settingsDraft())&&(hasSettingsDraft(state.settings,settingsDraft())||sceneVoiceSettings.isBusy());
+}
+function requestSettingsClose(){
+  if(!$('#settings-dialog').open)return;
+  if(!hasUnsavedSettings()){closeDialog($('#settings-dialog'));return;}
+  confirmAction('放弃未保存的设置？','有尚未保存的录音或改动，关闭后会丢失。',()=>closeDialog($('#settings-dialog')));
+}
+$('#settings-dialog').addEventListener('cancel',event=>{event.preventDefault();requestSettingsClose();});
 $('#settings-dialog').addEventListener('close',()=>sceneVoiceSettings.close());
 $('#save-settings').onclick=()=>{
   if(writeBlocked){toast('本机数据待恢复，请先处理首页的恢复提示。');return;}

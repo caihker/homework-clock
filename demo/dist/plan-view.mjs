@@ -42,3 +42,17 @@ export function compactCountdown(seconds) {
   const whole = Number.isFinite(seconds) ? Math.max(0, Math.ceil(seconds)) : 0;
   return { days: Math.floor(whole / 86400), clockSeconds: whole % 86400 };
 }
+
+/**
+ * The first incomplete plan that starts after the current slot (or after now
+ * when nothing is current). Used for the home card's "下一项" summary.
+ */
+export function nextTask(tasks, currentId, atMs) {
+  if (!Number.isFinite(atMs)) return null;
+  const list = (Array.isArray(tasks) ? tasks : [])
+    .filter(task => task && !task.completed && Number.isFinite(dateAtTime(task?.date, task?.start).getTime()))
+    .sort((a, b) => dateAtTime(a.date, a.start).getTime() - dateAtTime(b.date, b.start).getTime());
+  const currentIndex = currentId ? list.findIndex(task => task.id === currentId) : -1;
+  const candidates = currentIndex >= 0 ? list.slice(currentIndex + 1) : list;
+  return candidates.find(task => dateAtTime(task.date, task.start).getTime() > atMs) || null;
+}
