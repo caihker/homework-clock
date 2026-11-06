@@ -443,3 +443,11 @@ dialog .toast { left: 50%; }
 
 /* Extra room for the full 3D jump silhouette. */
 .pet-illustration[data-mood="happy"] { flex-basis:156px; width:156px; height:156px; }
+
+/* Recovery banner for unreadable local data or a fatal runtime error. */
+.recovery-banner { display:flex; flex-wrap:wrap; align-items:center; gap:12px 18px; margin-top:14px; padding:14px 18px; border:2px solid var(--ink); border-radius:14px 12px 15px 12px; background:var(--coral); box-shadow:4px 4px 0 var(--ink); }
+.recovery-copy { flex:1 1 320px; min-width:0; }
+.recovery-copy strong { display:block; font-size:15px; font-weight:850; }
+.recovery-copy p { margin-top:4px; font-size:13px; line-height:1.5; }
+.recovery-actions { display:flex; flex-wrap:wrap; gap:8px; }
+@media (max-width:600px) { .recovery-banner { padding:12px 14px; } }

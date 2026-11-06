@@ -14,10 +14,19 @@ test('a running entertainment session still receives its five-minute warning', (
   const events = collectDueReminders([play], options);
   assert.equal(events.length, 1);
   assert.deepEqual(events[0], {
-    key: 'game:14:00:15:00:warning', taskId: 'game', voice: 'ending-soon',
+    key: '2026-11-01:game:14:00:15:00:warning', taskId: 'game', voice: 'ending-soon',
     text: '游戏时间还有 5 分钟，准备慢慢收尾。', at: at('14:55'),
   });
   assert.deepEqual(play, before);
+});
+
+test('reminder keys carry their day and never mutate a caller-supplied Set', () => {
+  const events = collectDueReminders([meal], { fromMs: at('13:29'), toMs: at('13:30') });
+  assert.equal(events[0].key, '2026-11-01:meal:12:30:13:30:end');
+  const sent = new Set([events[0].key]);
+  assert.deepEqual(collectDueReminders([meal], { fromMs: at('13:29'), toMs: at('13:30'), notified: sent }), []);
+  assert.deepEqual([...sent], ['2026-11-01:meal:12:30:13:30:end']);
+  assert.deepEqual(collectDueReminders([meal], { fromMs: at('13:29'), toMs: at('13:30'), notified: new Set() }).length, 1);
 });
 
 test('manual starts do not repeat schedule-start or the separately handled active deadline', () => {

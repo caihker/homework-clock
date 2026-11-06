@@ -1,6 +1,8 @@
 /** Pure scheduling helpers. Every calendar value uses Beijing time (GMT+8). */
 
 export const TIME_ZONE = 'Asia/Shanghai';
+/** The only stored activity types; labels live in the UI layer. */
+export const TASK_TYPES = Object.freeze(['study', 'life', 'play']);
 const BEIJING_OFFSET_MS = 8 * 60 * 60 * 1000;
 
 function beijingDate(date) {
@@ -92,7 +94,7 @@ export function validateTask(task, tasks = []) {
   if (toMinutes(task.end) <= toMinutes(task.start)) {
     return '结束时间要晚于开始时间，跨天的安排请分成两项。';
   }
-  if (task.type != null && !['study', 'life', 'play'].includes(task.type)) {
+  if (task.type != null && !TASK_TYPES.includes(task.type)) {
     return '请选择学习、生活或娱乐。';
   }
   if (isConflict(task, tasks)) return '这个时间已经有安排了，换个时间试试。';

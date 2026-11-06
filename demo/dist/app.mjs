@@ -7,17 +7,18 @@ import { setupTimePicker, MAX_START_MINUTES, MAX_PICKER_MINUTES, isWithinSchedul
 import { createSession, normalizeSession, sessionElapsedMs, sessionRemainingMs, pauseSession, resumeSession, sessionDeadlineMs, sessionBreakRemainingMs } from './session-timer.mjs?v=0.4.1';
 import { TURTLE_LINES, createVoicePlayer } from './voice-pack.mjs?v=1';
 import { createBackup, parseBackup, MAX_BACKUP_BYTES } from './backup.mjs';
-import { normalizeSceneVoices, selectSceneVoice, countSceneVoices } from './scene-voices.mjs';
+import { selectSceneVoice, countSceneVoices } from './scene-voices.mjs';
 import { createSceneVoiceSettings } from './scene-voice-settings.mjs';
 import { taskProgress, suggestStartMinutes, compactCountdown } from './plan-view.mjs';
 import { collectDueReminders } from './reminder-events.mjs';
 import { createUpdateGuard, hasSettingsDraft } from './update-guard.mjs';
 import { createUpdateSession } from './update-session.mjs';
 import { commitLocalState, readUpdateLock, releaseUpdateLock } from './update-storage.mjs';
+import { STATE_KEY, RECOVERY_KEY, classifyStoredState, normalizeStoredState, pruneNotified, chooseRecoveryExport } from './store.mjs';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
-const STORE = 'homework-clock-demo-v1';
+const STORE = STATE_KEY;
 const UPDATE_LOCK = 'homework-clock-update-lock-v1';
 // Defer the storage getter until a guarded helper calls it: Safari may deny
 // even accessing localStorage, rather than only failing a write.
@@ -57,9 +58,16 @@ const setCategoryIcons = () => $$('[data-category]').forEach(el => { el.innerHTM
 const timePicker = setupTimePicker();
 const defaults = { sound: true, pet: true, companion: 'original', code: '小皮开工了', message: '先做一道，进入状态就容易啦。', voice: null };
 const actualToday = dateKey(new Date());
+const sampleState = () => ({ version: 1, localUseVersion: 1, tasks: createSampleTasks(actualToday), selectedDate: actualToday, settings: { ...defaults }, history: [], session: null, notified: [], clock: { mode: 'real' } });
 let state;
 let storageOK = true;
 let lastStoredRaw = null;
+let recoveryRaw = null;
+let originalRaw = null;
+let loadIssue = null;
+let writeBlocked = false;
+let tickTimer = null;
+let fatalReported = false;
 let bootBarrier=readUpdateLock({storage:stateStorage,key:UPDATE_LOCK});
 let updateLocked = !!bootBarrier;
 let bootTimer;
@@ -69,20 +77,31 @@ let importingBackup = false;
 let composingInput = false;
 try {
   lastStoredRaw = localStorage.getItem(STORE);
-  const saved = JSON.parse(lastStoredRaw);
-  state = saved?.version === 1 && Array.isArray(saved.tasks) ? saved : null;
 } catch { storageOK = false; }
-if (!state) state = { version: 1, localUseVersion: 1, tasks: createSampleTasks(actualToday), selectedDate: actualToday, settings: { ...defaults }, history: [], session: null, notified: [], clock: { mode: 'real' } };
-state.settings = { ...defaults, ...state.settings };
-state.settings.companion = normalizeCompanion(state.settings.companion);
-state.settings.voices = normalizeSceneVoices(state.settings);
-state.settings.voice = null;
-if (['小熊开工啦！', '小熊开工了'].includes(state.settings.code)) state.settings.code = defaults.code;
-state.history ||= [];
-state.notified ||= [];
-state.tasks = state.tasks.filter(t => t && typeof t.id === 'string' && TYPES[t.type] && !validateTask(t, []));
-if (!Number.isFinite(dateAtTime(state.selectedDate).getTime())) state.selectedDate=actualToday;
-state.clock ||= { mode: 'real' };
+const stored = storageOK ? classifyStoredState(lastStoredRaw) : { status: 'empty' };
+if (stored.status === 'ok') {
+  const normalized = normalizeStoredState(stored.value, { defaults, today: actualToday });
+  state = normalized.state;
+  if (normalized.droppedTasks || normalized.droppedHistory) {
+    originalRaw = lastStoredRaw;
+    loadIssue = { status: 'partial', dropped: normalized.droppedTasks + normalized.droppedHistory, preserved: false };
+    recoveryRaw = preserveRecovery(lastStoredRaw);
+    if (recoveryRaw) loadIssue.preserved = true;
+    // If the copy cannot be written, keep the original bytes safe by refusing
+    // to overwrite them with the normalized result.
+    else writeBlocked = true;
+  }
+} else if (stored.status === 'empty') {
+  state = sampleState();
+} else {
+  // Never overwrite bytes this version cannot read: keep a recovery copy and
+  // stop automatic saves until the user exports, restores or resets.
+  writeBlocked = true;
+  originalRaw = lastStoredRaw;
+  loadIssue = { status: stored.status === 'future' ? 'future' : 'invalid', version: stored.version, reason: stored.reason };
+  recoveryRaw = preserveRecovery(lastStoredRaw);
+  state = sampleState();
+}
 let filter = 'all';
 let currentId = null;
 let focusTaskId = null;
@@ -118,14 +137,177 @@ const clockText = d => d.toLocaleTimeString('zh-CN', { timeZone: TIME_ZONE, hour
 const clockMinutes = d => { const p=clockParts(d);return p.hours*60+p.minutes; };
 function durationLabel(minutes) { const h = Math.floor(minutes / 60), m = minutes % 60; return `${h ? `${h} 小时` : ''}${h && m ? ' ' : ''}${m ? `${m} 分钟` : ''}` || '0 分钟'; }
 function formatSeconds(n) { const s = Math.max(0, Math.ceil(n)); return [Math.floor(s/3600), Math.floor(s%3600/60), s%60].map(x=>String(x).padStart(2,'0')).join(':'); }
+function preserveRecovery(raw) {
+  if (typeof raw !== 'string' || !raw) return null;
+  try {
+    if (localStorage.getItem(RECOVERY_KEY) !== raw) localStorage.setItem(RECOVERY_KEY, raw);
+  } catch { return null; }
+  return raw;
+}
+function updateSaveState() {
+  const el = $('#save-state');
+  if (!el) return;
+  const failed = Boolean(loadIssue) || !storageOK;
+  let text = '已保存在本机';
+  if (loadIssue && loadIssue.status === 'partial') text = loadIssue.preserved === false
+    ? `有 ${loadIssue.dropped} 条记录无法读取，且无法保存恢复副本，已暂停自动保存`
+    : `有 ${loadIssue.dropped} 条记录无法读取，原始数据已保留`;
+  else if (loadIssue) text = '本机数据待恢复，已暂停自动保存';
+  else if (!storageOK) text = saveFailure === 'conflict' ? '其他窗口已保存新数据，请先导出当前备份再重开' : '暂未保存，请到设置导出备份';
+  el.innerHTML = `${icon(failed ? 'x' : 'check')}${text}`;
+  el.classList.toggle('save-failed', failed);
+}
 function persist({ updating = false } = {}) {
-  if(updateLocked&&!updating)return false;
+  if (updateLocked && !updating) return false;
+  if (writeBlocked && !updating) { storageOK = false; saveFailure = 'blocked'; updateSaveState(); return false; }
   const saved=commitLocalState({storage:stateStorage,key:STORE,expectedRaw:lastStoredRaw,value:state});
   storageOK=saved.ok;saveFailure=saved.reason;if(saved.ok)lastStoredRaw=saved.raw;
-  const el = $('#save-state');
-  if (el) { el.innerHTML = `${icon(storageOK ? 'check' : 'x')}${storageOK ? '已保存在本机' : saveFailure==='conflict'?'其他窗口已保存新数据，请先导出当前备份再重开':'暂未保存，请到设置导出备份'}`; el.classList.toggle('save-failed', !storageOK); }
+  updateSaveState();
   return storageOK;
 }
+/** Start (or restart) the foreground clock loop after a recovery action. */
+function startTicking() {
+  if (tickTimer) clearInterval(tickTimer);
+  lastTick = now().getTime();
+  lastMinute = '';
+  tickTimer = setInterval(() => { try { tick(); } catch (error) { reportFatal(error); } }, 1000);
+}
+
+const RECOVERY_VIEW = {
+  invalid: { title: '本机数据无法读取', detail: '保存的数据格式已损坏。原始内容已另存为恢复副本；当前已暂停自动保存，请先导出原始数据，或从备份恢复。', export: true, restore: true, reset: true },
+  future: { title: '本机数据来自更新版本', detail: '这台设备上的数据由更新版本的作业时钟写入，当前版本无法安全读取。请先更新程序；也可以导出原始数据后重置。', export: true, restore: true, reset: true },
+  partial: { title: '部分记录无法读取', detail: '有部分安排或记录无法读取，已跳过并保留原始数据副本。当前数据可以继续保存。', export: true, dismiss: true },
+  error: { title: '应用遇到问题', detail: '已暂停自动保存，避免写入不完整的数据。可以先导出当前数据，再刷新重试；也可确认重新开始。', export: true, retry: true, reset: true },
+  reset: { title: '已恢复保存', detail: '当前数据已保存，页面已恢复自动保存与计时；如仍有异常，请刷新重试。', export: true, dismiss: true },
+};
+function showRecoveryBanner(mode) {
+  const banner = $('#recovery-banner');
+  if (!banner) return;
+  const base = RECOVERY_VIEW[mode] || RECOVERY_VIEW.error;
+  const partialFailed = mode === 'partial' && loadIssue?.preserved === false;
+  const view = partialFailed ? { ...base, dismiss: false, reset: true } : base;
+  banner.dataset.mode = mode;
+  banner.hidden = false;
+  $('#recovery-title').textContent = view.title;
+  if (mode === 'partial') {
+    $('#recovery-detail').textContent = partialFailed
+      ? `有 ${loadIssue.dropped} 条安排或记录无法读取，且本机空间不足、无法保存恢复副本；已暂停自动保存，请先导出原始数据。`
+      : `有 ${loadIssue.dropped} 条安排或记录无法读取，已跳过并保留原始数据副本。`;
+  } else $('#recovery-detail').textContent = view.detail;
+  const resetLabel = $('#recovery-reset');
+  if (resetLabel) resetLabel.textContent = mode === 'error' ? '保存当前数据并继续' : '用示例数据重新开始';
+  for (const name of ['export', 'restore', 'reset', 'dismiss', 'retry']) {
+    const button = $(`#recovery-${name}`);
+    if (button) button.hidden = !view[name];
+  }
+}
+function hideRecoveryBanner() { const banner = $('#recovery-banner'); if (banner) banner.hidden = true; }
+function downloadText(text, filename) {
+  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  const link = document.createElement('a');
+  link.href = url; link.download = filename;
+  document.body.append(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+function embeddedRecoveryRaw() {
+  if (typeof recoveryRaw === 'string' && recoveryRaw) return recoveryRaw;
+  if (typeof originalRaw === 'string' && originalRaw) return originalRaw;
+  return null;
+}
+function recoveryCopyRaw() {
+  return embeddedRecoveryRaw() || (() => { try { return localStorage.getItem(RECOVERY_KEY); } catch { return null; } })();
+}
+function refreshRecoveryCopyActions() {
+  const actions = $('#recovery-copy-actions');
+  if (actions) actions.hidden = !recoveryCopyRaw();
+}
+function exportRecoveryData() {
+  const p = clockParts(new Date());
+  const stamp = `${dateKey(new Date())}-${[p.hours, p.minutes, p.seconds].map(v => String(v).padStart(2, '0')).join('')}`;
+  let serializedState = '';
+  try {
+    serializedState = classifyStoredState(lastStoredRaw).status === 'ok' ? lastStoredRaw : JSON.stringify(state);
+  } catch { try { serializedState = JSON.stringify(state); } catch { /* nothing to export */ } }
+  // In fatal-error mode only this incident's in-memory bytes are trustworthy;
+  // a recovery copy kept from an older incident must not masquerade as current data.
+  const persistedCopy = loadIssue?.status === 'error'
+    ? null
+    : (() => { try { return localStorage.getItem(RECOVERY_KEY); } catch { return null; } })();
+  const candidate = chooseRecoveryExport({ recoveryRaw: embeddedRecoveryRaw(), originalRaw: persistedCopy, serializedState });
+  if (!candidate) { toast('没有可导出的数据。'); return; }
+  try {
+    if (candidate.kind === 'recovered') {
+      downloadText(candidate.text, `作业时钟-待恢复数据-${stamp}.json`);
+      toast('原始数据已导出，请保存到“文件”App。');
+    } else {
+      downloadText(candidate.text, `作业时钟-当前数据-${stamp}.json`);
+      toast('当前数据已导出，请保存到“文件”App。');
+    }
+  } catch { toast('导出失败，请检查浏览器存储与下载权限。'); }
+}
+function reportFatal(error) {
+  try { console.error(error); } catch { /* console may be unavailable */ }
+  if (fatalReported) return;
+  fatalReported = true;
+  writeBlocked = true;
+  try { if (tickTimer) clearInterval(tickTimer); } catch { /* timer may not exist yet */ }
+  tickTimer = null;
+  try {
+    loadIssue = { status: 'error' };
+    showRecoveryBanner('error');
+    updateSaveState();
+  } catch { /* the page may be too broken to show the banner */ }
+}
+window.addEventListener('error', event => reportFatal(event.error || event.message));
+// A rejected background task (for example a superseded audio play) must not
+// freeze saving; genuine thrown errors still go through reportFatal().
+window.addEventListener('unhandledrejection', event => {
+  try { console.error(event.reason); } catch { /* console may be unavailable */ }
+  if (!fatalReported) toast('有一个后台操作没有完成，可以继续使用。');
+});
+$('#recovery-export').onclick = exportRecoveryData;
+$('#recovery-retry').onclick = () => location.reload();
+$('#recovery-dismiss').onclick = () => { loadIssue = null; hideRecoveryBanner(); updateSaveState(); };
+$('#recovery-restore').onclick = () => { openSettings(); setSettingsTab('local'); $('#import-backup').click(); };
+$('#recovery-reset').onclick = () => {
+  const errorMode = loadIssue?.status === 'error';
+  confirmAction(
+    errorMode ? '保存当前数据并继续？' : '用示例数据重新开始？',
+    errorMode ? '将保存当前页面数据并恢复自动保存与计时；如果问题仍在，可刷新页面重试。' : '当前无法读取的原数据会先另存到本机恢复副本，建议先导出。',
+    () => {
+      if (!errorMode) {
+        const rawToKeep = originalRaw || lastStoredRaw;
+        if (rawToKeep && !preserveRecovery(rawToKeep)) {
+          toast('无法保存原始数据副本，请先点“导出原始数据”，再重新开始。');
+          return;
+        }
+      }
+      writeBlocked = false;
+      loadIssue = null;
+      hideRecoveryBanner();
+      const saved = persist();
+      if (!saved) {
+        writeBlocked = true;
+        loadIssue = { status: 'error' };
+        showRecoveryBanner('error');
+        toast('重新开始未能保存，本机数据仍在，请先导出原始数据。');
+        return;
+      }
+      fatalReported = false;
+      refreshRecoveryCopyActions();
+      startTicking();
+      render();
+      showRecoveryBanner('reset');
+    });
+};
+$('#export-recovery-copy').onclick = exportRecoveryData;
+$('#delete-recovery-copy').onclick = () => confirmAction('删除恢复副本？', '只删除本机保存的无法读取数据副本，当前计划和设置不受影响。删除后无法再导出，建议先导出。', () => {
+  try { localStorage.removeItem(RECOVERY_KEY); } catch { /* storage may be unavailable */ }
+  recoveryRaw = null;
+  originalRaw = null;
+  refreshRecoveryCopyActions();
+  toast('恢复副本已删除。');
+});
 function toast(message, undo) {
   const topDialog = $$('dialog[open]').at(-1);
   (topDialog || document.body).append($('#toast'));
@@ -197,7 +379,7 @@ function render() {
   $('.finish-mascot').hidden=!state.settings.pet;
   $('#copy-day').disabled=!tasks.length;
   renderTimeline(tasks,current);
-  updateClocks();persist();
+  updateClocks();
 }
 function renderTimeline(tasks,current) {
   const visible=tasks.filter(t=>filter==='all'||t.type===filter);
@@ -470,6 +652,7 @@ function openSettings(){
   $('#sound-enabled').checked=state.settings.sound;$('#pet-enabled').checked=state.settings.pet;
   $$('[name=companion]').forEach(input => { input.checked=input.value===normalizeCompanion(state.settings.companion); });
   setFamilyTextEditor(false);syncSettingsViewport();
+  refreshRecoveryCopyActions();
   sceneVoiceSettings.open(state.settings);setSettingsTab('sound');showDialog('#settings-dialog');
 }
 $('#settings-button').onclick=openSettings;
@@ -500,6 +683,7 @@ $('#preview-family-text').onclick=()=>{
 $('#listen-family').onclick=()=>playStartVoice(state.settings,true);
 $('#settings-dialog').addEventListener('close',()=>sceneVoiceSettings.close());
 $('#save-settings').onclick=()=>{
+  if(writeBlocked){toast('本机数据待恢复，请先处理首页的恢复提示。');return;}
   if(sceneVoiceSettings.isBusy()){toast('请先结束录音，等整理完成后再保存设置。');return;}
   const settings={sound:$('#sound-enabled').checked,pet:$('#pet-enabled').checked,companion:normalizeCompanion($('[name=companion]:checked')?.value),code:$('#family-code').value.trim(),message:$('#family-message').value.trim(),voice:null,voices:sceneVoiceSettings.getVoices()};
   // Commit all seven recordings together. On storage failure, keep both the
@@ -507,7 +691,7 @@ $('#save-settings').onclick=()=>{
   const saved=commitLocalState({storage:stateStorage,key:STORE,expectedRaw:lastStoredRaw,value:{...state,settings}});
   if(!saved.ok){toast(saved.reason==='conflict'?'其他窗口已保存新数据。设置和录音草稿尚未保存，请暂时不要关闭本页；导出的备份不包含这些草稿。':'本机存储空间不足或不可用，录音尚未保存。请缩短录音后再试，原设置已保留。');return;}
   lastStoredRaw=saved.raw;
-  state.settings=settings;persist();closeDialog($('#settings-dialog'));render();
+  state.settings=settings;storageOK=true;saveFailure=null;updateSaveState();closeDialog($('#settings-dialog'));render();
   toast('情景语音和家庭设置已保存。');
 };
 
@@ -567,17 +751,20 @@ $('#backup-file').onchange = async event => {
       catch { toast('本机存储空间不足或不可用，恢复未完成，原数据已保留。'); return; }
       voicePlayer.stop();
       $$('dialog[open]').forEach(closeDialog);
-      state = restored; storageOK = true;
+      state = restored; storageOK = true; writeBlocked = false; loadIssue = null;
+      fatalReported = false;
+      hideRecoveryBanner();
+      updateSaveState();refreshRecoveryCopyActions();
       currentId = focusTaskId = finishTaskId = null;
       celebration = null; turtleTrips.clear(); filter = 'all';
       $$('[data-filter]').forEach(button => button.classList.toggle('active', button.dataset.filter === 'all'));
-      lastTick = now().getTime(); lastMinute = ''; render();
+      startTicking();render();
       toast('备份已恢复，正在使用真实时间。');
     });
   } catch (error) { if (backupImportIsCurrent(generation)) $('#backup-result').textContent = error.message || '无法读取这份备份，原数据未改变。'; }
   finally { if (generation === backupImportGeneration) setBackupImportBusy(false); }
 };
-$('#reset-demo').onclick=()=>confirmAction('重新体验示例？','当前浏览器中的计划和专注记录会重置，家庭设置会保留。',()=>{const resetDate=dateKey(new Date());state.tasks=createSampleTasks(resetDate);state.history=[];state.session=null;state.notified=[];state.selectedDate=resetDate;state.clock={mode:'demo',simulatedAt:dateAtTime(resetDate,"10:20").getTime(),anchor:Date.now()};lastTick=now().getTime();closeDialog($('#settings-dialog'));closeDialog($('#focus-dialog'));closeDialog($('#finish-dialog'));filter='all';$$('[data-filter]').forEach(b=>b.classList.toggle('active',b.dataset.filter==='all'));persist();render();toast('示例已就绪，开工！');});
+$('#reset-demo').onclick=()=>{if(writeBlocked){toast('本机数据待恢复，请先处理首页的恢复提示。');return;}confirmAction('重新体验示例？','当前浏览器中的计划和专注记录会重置，家庭设置会保留。',()=>{const resetDate=dateKey(new Date());state.tasks=createSampleTasks(resetDate);state.history=[];state.session=null;state.notified=[];state.selectedDate=resetDate;state.clock={mode:'demo',simulatedAt:dateAtTime(resetDate,"10:20").getTime(),anchor:Date.now()};lastTick=now().getTime();closeDialog($('#settings-dialog'));closeDialog($('#focus-dialog'));closeDialog($('#finish-dialog'));filter='all';$$('[data-filter]').forEach(b=>b.classList.toggle('active',b.dataset.filter==='all'));persist();render();toast('示例已就绪，开工！');});};
 
 function tick({ silent = false } = {}) {
   if (document.hidden||updateLocked) return;
@@ -601,10 +788,15 @@ function tick({ silent = false } = {}) {
     if(active.type==='study')toast(`${active.title}的时间结束啦。`);
     reminderVoice='end';
   }
+  // Keep only today's reminder keys so long sessions cannot grow storage.
+  const pruned=pruneNotified(state.notified,dateKey(n));
+  const notifiedChanged=pruned.length!==state.notified.length;
+  if(notifiedChanged)state.notified=pruned;
   const due=collectDueReminders(state.tasks,{fromMs:lastTick,toMs:at,activeTaskId:state.session?.taskId,finishedTaskId:finishedTask?.id,notified:state.notified});
   const messages=due.map(event=>event.text);
   for(const event of due){state.notified.push(event.key);reminderVoice ||= event.voice;}
   if(messages.length){toast(messages.join(' '));persist();}
+  else if(notifiedChanged)persist();
   if(reminderVoice&&!silent)playTurtle(reminderVoice);
   lastTick=at;const minute=`${dateKey(n)}:${clockText(n)}`;
   if(minute!==lastMinute){lastMinute=minute;render();}else updateClocks();
@@ -624,10 +816,14 @@ const updateGuard=createUpdateGuard({
     pendingAction:['#copy-dialog','#confirm-dialog','#clock-dialog','#finish-dialog'].some(selector=>$(selector).open),
   }),
   persist:()=>{
+    if(writeBlocked)return false;
     const current=localStorage.getItem(STORE);
     // Another clean window can have an older in-memory snapshot. Its update
     // must retain the latest shared data rather than write the old snapshot.
-    if(current!==lastStoredRaw){const saved=JSON.parse(current);return saved?.version===1&&Array.isArray(saved.tasks)&&!!saved.settings;}
+    if(current!==lastStoredRaw){
+      const remote=classifyStoredState(current);
+      return remote.status==='ok';
+    }
     if(!storageOK)return false;
     return persist({updating:true});
   },
@@ -649,11 +845,40 @@ if(navigator.serviceWorker)createUpdateSession({
   },
   onReload:()=>{releaseUpdateLock(stateStorage,UPDATE_LOCK,updateTransaction?.transactionId);location.reload();},
 });
+window.addEventListener('storage', event => {
+  if (event.key !== STORE || updateLocked || writeBlocked || event.newValue == null || event.newValue === lastStoredRaw) return;
+  // Never replace the callback of the dialog that is already asking the user
+  // to confirm a delete, reset or backup restore.
+  if ($('#confirm-dialog').open || importingBackup) { toast('其他窗口已保存新数据；请完成当前操作后刷新页面。'); return; }
+  if (state.session) { toast('当前正在计时，其他窗口的新数据暂不同步；结束后刷新即可。'); return; }
+  const remote = classifyStoredState(event.newValue);
+  if (remote.status !== 'ok') { toast('其他窗口保存的数据无法读取，当前页面数据已保留。'); return; }
+  const adopt = () => {
+    try { adoptStoredState(localStorage.getItem(STORE) ?? event.newValue); }
+    catch (error) { reportFatal(error); }
+  };
+  let safe = false;
+  try { safe = updateGuard.check().ok; } catch { safe = false; }
+  if (safe) { adopt(); toast('其他窗口已保存新数据，已同步。'); }
+  else confirmAction('其他窗口已保存新数据', '当前页面还有未完成的编辑。要放弃这些编辑并加载最新数据吗？', adopt);
+});
 function adoptStoredState(raw){
-  const saved=JSON.parse(raw);
-  if(saved?.version!==1||!Array.isArray(saved.tasks)||!saved.settings)return;
-  state=saved;state.settings.companion=normalizeCompanion(state.settings.companion);state.settings.voices=normalizeSceneVoices(state.settings);
-  state.history||=[];state.notified||=[];lastStoredRaw=raw;storageOK=true;
+  const remote=classifyStoredState(raw);
+  if(remote.status!=='ok')return false;
+  const normalized=normalizeStoredState(remote.value,{defaults,today:dateKey(new Date())});
+  const dropped=normalized.droppedTasks+normalized.droppedHistory;
+  let preserved=null;
+  if(dropped){originalRaw=raw;preserved=recoveryRaw=preserveRecovery(raw);}
+  state=normalized.state;
+  if(dropped){
+    loadIssue={status:'partial',dropped,preserved:!!preserved};
+    if(!preserved)writeBlocked=true;
+  }else{
+    recoveryRaw=null;originalRaw=null;loadIssue=null;writeBlocked=false;
+  }
+  saveFailure=null;lastStoredRaw=raw;storageOK=true;fatalReported=false;
+  hideRecoveryBanner();
+  updateSaveState();refreshRecoveryCopyActions();
   if($('#settings-dialog').open){
     $('#family-code').value=state.settings.code;$('#family-message').value=state.settings.message;
     $('#sound-enabled').checked=state.settings.sound;$('#pet-enabled').checked=state.settings.pet;
@@ -661,7 +886,10 @@ function adoptStoredState(raw){
     sceneVoiceSettings.open(state.settings);
   }
   if($('#focus-dialog').open&&state.session)focusTaskId=state.session.taskId;
+  startTicking();
   render();
+  if(loadIssue)showRecoveryBanner('partial');
+  return true;
 }
 if(bootBarrier){
   const pending=bootBarrier;
@@ -677,21 +905,29 @@ if(bootBarrier){
   if(!readUpdateLock({storage:stateStorage,key:UPDATE_LOCK}))reopen();
 }
 setIcons();setCategoryIcons();renderCompanionPreviews();
-// Upgrade old demo installs once; an explicit later demo selection is retained.
-if (!state.localUseVersion) {
-  if (state.clock.mode === 'demo') { stopSession(); state.clock = { mode: 'real' }; state.selectedDate = actualToday; }
-  state.localUseVersion = 1;
-}
-lastTick=now().getTime();
-if(state.session){
-  const t=getTask(state.session.taskId);
-  if(!t)stopSession();
-  else{
-    state.session=normalizeSession(state.session,t,now().getTime());
-    if(now().getTime()>=taskEnd(t))stopSession(taskEnd(t));
+let bootError=null;
+try {
+  // Upgrade old demo installs once; an explicit later demo selection is retained.
+  if (!state.localUseVersion) {
+    if (state.clock.mode === 'demo') { stopSession(); state.clock = { mode: 'real' }; state.selectedDate = actualToday; }
+    state.localUseVersion = 1;
   }
-}
-render();setInterval(tick,1000);
+  lastTick=now().getTime();
+  if(state.session){
+    const t=getTask(state.session.taskId);
+    if(!t)stopSession();
+    else{
+      state.session=normalizeSession(state.session,t,now().getTime());
+      if(now().getTime()>=taskEnd(t))stopSession(taskEnd(t));
+    }
+  }
+} catch (error) { bootError = error; }
+try { render(); } catch (error) { bootError ||= error; }
+if (!writeBlocked && !bootError) persist();
+startTicking();
+if (loadIssue) showRecoveryBanner(loadIssue.status === 'future' ? 'future' : loadIssue.status === 'partial' ? 'partial' : 'invalid');
+updateSaveState();
+if (bootError) reportFatal(bootError);
 window.addEventListener('homework-offline-ready', () => toast('离线准备完成，可以添加到主屏幕啦。'));
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden) { voicePlayer.stop(); return; }

@@ -1,5 +1,5 @@
 import { normalizeCompanion } from './companion.mjs';
-import { dateAtTime, dateKey, toMinutes, validateTask } from './core.mjs';
+import { dateAtTime, dateKey, toMinutes, validateTask, TASK_TYPES } from './core.mjs';
 import { sessionElapsedMs } from './session-timer.mjs';
 import { SCENES, normalizeSceneVoices } from './scene-voices.mjs';
 import { readEmbeddedAudio } from './audio-format.mjs';
@@ -10,7 +10,7 @@ const SCENE_KEYS = SCENES.map(scene => scene.key);
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_TIMESTAMP = Date.UTC(10000, 0, 1) - 1;
 const SCHEMA = 'homework-clock-backup';
-const TYPES = new Set(['study', 'life', 'play']);
+const TYPES = new Set(TASK_TYPES);
 const DEFAULT_SETTINGS = { sound: true, pet: true, code: '小皮开工了', message: '先做一道，进入状态就容易啦。', voice: null };
 
 function fail(message = '备份内容不完整或格式不正确，请选择作业时钟导出的文件。') {
