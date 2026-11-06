@@ -107,6 +107,15 @@ function setupOffline(panel) {
   });
   window.addEventListener('homework-update-cancelled',event=>{applying=false;updateFeedback=event.detail?.message||'更新已暂停，当前页面可以继续使用。';renderState(lastState);});
   window.addEventListener('online', () => { if (phase === 'error') controller.prepare(); });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) controller.refresh(); });
+  // Re-checking every tab return is wasteful; after the first minute, refresh
+  // at most every 30 minutes. The 本机 panel can always trigger a manual try.
+  let lastRefresh = Date.now();
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    const at = Date.now();
+    if (at - lastRefresh < 30 * 60 * 1000) return;
+    lastRefresh = at;
+    controller.refresh();
+  });
   controller.prepare();
 }

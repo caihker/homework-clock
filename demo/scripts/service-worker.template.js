@@ -5,9 +5,12 @@ const scope = new URL(self.registration.scope);
 const assets = new Map(BUILD.assets.map(asset => [new URL(asset.url, scope).href, asset]));
 const indexURL = new URL('./index.html', scope).href;
 const updateIntentURL = new URL('./.homework-clock-update-intent', scope).href;
+const readyURL = new URL('./.homework-clock-ready', scope).href;
 let repairPromise;
 let applyUpdatePromise;
 const RESOURCE_TIMEOUT_MS = 30000;
+const SMALL_ASSET_BYTES = 256 * 1024;
+const SMALL_PARALLEL = 3;
 const MAX_DOWNLOAD_ATTEMPTS = 3;
 const CLIENT_UPDATE_TIMEOUT_MS = 5000;
 const UPDATE_TRANSACTION_MS = 20000;
@@ -75,7 +78,7 @@ async function runApplyUpdate(event) {
     const initiator = event.source?.id && await self.clients.get(event.source.id);
     ensureFresh();
     if (!inScopeWindow(initiator)) throw updateError('source', '更新请求不属于当前作业时钟。');
-    if (!(await cacheStatus()).ready) throw updateError('incomplete', '新版离线资源尚未准备完整，请继续准备后再更新。');
+    if (!(await cacheStatus({ full: true })).ready) throw updateError('incomplete', '新版离线资源尚未准备完整，请继续准备后再更新。');
     ensureFresh();
     participants = await scopeWindows();
     ensureFresh();
@@ -103,7 +106,7 @@ async function runApplyUpdate(event) {
     if (committed?.ready !== true) throw updateError('client', typeof committed?.message === 'string' ? committed.message.slice(0, 300) : '本机数据尚未保存，已保留原版本，请重试。');
     // Storage can be evicted while the user data is being committed. Never
     // activate a partial build even after every page has safely frozen.
-    if (!(await cacheStatus()).ready) throw updateError('incomplete', '新版资源已不完整，原版本和本机数据已保留，请重新准备。');
+    if (!(await cacheStatus({ full: true })).ready) throw updateError('incomplete', '新版资源已不完整，原版本和本机数据已保留，请重新准备。');
     ensureFresh();
     const cache = await caches.open(CACHE);
     ensureFresh();
@@ -196,23 +199,72 @@ async function downloadAsset(cache, url, asset, progress = {}) {
   }
 }
 
-async function fillCache(cache) {
-  let complete = 0;
-  // Fetch sequentially: large animation/font files should not compete for iPad memory.
-  for (const [url, asset] of assets) {
-    if (!await cache.match(url)) {
-      await downloadAsset(cache, url, asset, { complete, total: assets.size });
-    }
-    complete++;
-    await broadcast({ type: 'PROGRESS', version: BUILD.version, complete, total: assets.size, path: asset.url, retrying: false });
-  }
+async function markReady(cache) {
+  await cache.put(readyURL, new Response(BUILD.version, { headers: { 'Content-Type': 'text/plain' } }));
 }
 
-async function cacheStatus() {
-  const cache = await caches.open(CACHE);
-  for (const url of assets.keys()) {
-    if (!await cache.match(url)) return { ready: false, version: BUILD.version, total: assets.size, canApplyUpdate: true };
+async function isMarkedReady(cache) {
+  const marked = await cache.match(readyURL);
+  return Boolean(marked) && await marked.text() === BUILD.version;
+}
+
+async function fillCache(cache) {
+  const missing = [];
+  for (const [url, asset] of assets) {
+    if (!await cache.match(url)) missing.push([url, asset]);
   }
+  let complete = assets.size - missing.length;
+  const finish = async asset => {
+    complete++;
+    await broadcast({ type: 'PROGRESS', version: BUILD.version, complete, total: assets.size, path: asset.url, retrying: false });
+  };
+  // Large files stay serial so iPad memory is not stressed. Small files can
+  // use a few parallel slots without changing what is cached or verified.
+  const small = [];
+  const large = [];
+  for (const item of missing) {
+    // The fixture build may omit byte sizes; treat unknown sizes as large.
+    if (Number.isFinite(item[1].bytes) && item[1].bytes <= SMALL_ASSET_BYTES) small.push(item);
+    else large.push(item);
+  }
+  let next = 0;
+  const runSmall = async () => {
+    while (next < small.length) {
+      const [url, asset] = small[next++];
+      await downloadAsset(cache, url, asset, { complete, total: assets.size });
+      await finish(asset);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(SMALL_PARALLEL, small.length) }, runSmall));
+  for (const [url, asset] of large) {
+    await downloadAsset(cache, url, asset, { complete, total: assets.size });
+    await finish(asset);
+  }
+  await markReady(cache);
+}
+
+async function cacheStatus({ full = false } = {}) {
+  const cache = await caches.open(CACHE);
+  // A completed install is remembered in the same cache, so cold starts can
+  // skip dozens of cache.match calls. Update/activation paths pass full=true so
+  // a stale marker can never let an incomplete snapshot be applied.
+  if (!full && await isMarkedReady(cache)) {
+    // Spot-check the launch-critical entries before trusting the marker.
+    const sentinels = [indexURL, new URL('./app.mjs', scope).href];
+    let intact = true;
+    for (const url of sentinels) {
+      if (!await cache.match(url)) { intact = false; break; }
+    }
+    if (intact) return { ready: true, version: BUILD.version, total: assets.size, canApplyUpdate: true };
+    await cache.delete(readyURL);
+  }
+  for (const url of assets.keys()) {
+    if (!await cache.match(url)) {
+      if (await isMarkedReady(cache)) await cache.delete(readyURL);
+      return { ready: false, version: BUILD.version, total: assets.size, canApplyUpdate: true };
+    }
+  }
+  await markReady(cache);
   return { ready: true, version: BUILD.version, total: assets.size, canApplyUpdate: true };
 }
 
@@ -236,7 +288,7 @@ self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     // Storage may have been evicted while an update was waiting for old windows.
     // Keep the previous complete snapshot if this snapshot cannot be repaired.
-    if (!(await cacheStatus()).ready) {
+    if (!(await cacheStatus({ full: true })).ready) {
       try {
         await fillCache(await caches.open(CACHE));
       } catch (error) {
@@ -298,6 +350,7 @@ self.addEventListener('fetch', event => {
     // An evicted resource can be repaired only with the exact installed build.
     // Do not silently serve a newer script into an older running application.
     try {
+      await cache.delete(readyURL);
       await downloadAsset(cache, url.href, assets.get(url.href), { complete: 0, total: assets.size });
       const repaired = await cache.match(url.href);
       if (repaired) return partialResponse(request, repaired);
