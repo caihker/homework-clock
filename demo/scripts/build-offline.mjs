@@ -9,19 +9,30 @@ const excluded = new Set(['sw.js']);
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const localPath = (root, path) => relative(root, path).split('\\').join('/');
 
+/**
+ * Large assets fetched only when actually used: full CJK fonts cover rare
+ * glyphs, and the non-default companion animation set is needed only after a
+ * style switch. They stay deployed for online use but are not pre-cached.
+ */
+export function isLazyAsset(key) {
+  if (key.startsWith('assets/fonts/') && key.endsWith('.woff2') && !key.endsWith('.core.woff2')) return true;
+  return key.startsWith('assets/motion-solid/') && key.endsWith('.webp');
+}
+
 async function walk(directory, root) {
   const entries = await readdir(directory, { withFileTypes: true });
   const files = [];
   for (const entry of entries) {
     if (entry.name.startsWith('.')) continue;
     const path = join(directory, entry.name);
+    const key = localPath(root, path);
     if (entry.isDirectory()) files.push(...await walk(path, root));
-    else if (entry.isFile() && !excluded.has(localPath(root, path))) files.push(path);
+    else if (entry.isFile() && !excluded.has(key) && !isLazyAsset(key)) files.push(path);
   }
   return files;
 }
 
-/** Include all current fonts, animations and voice clips, even before use. */
+/** Pre-cache the launch-critical assets; large fonts/animations stay lazy. */
 export async function collectOfflineAssets(directory = dist) {
   const files = (await walk(directory, directory)).sort();
   return Promise.all(files.map(async path => {

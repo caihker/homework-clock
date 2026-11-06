@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
-import { collectOfflineAssets } from '../scripts/build-offline.mjs';
+import { collectOfflineAssets, isLazyAsset } from '../scripts/build-offline.mjs';
 import { moodLabels } from '../dist/mascot.mjs';
 import { TURTLE_LINES } from '../dist/voice-pack.mjs';
 
@@ -18,6 +18,10 @@ function required(reference, owner = './index.html') {
   const url = new URL(reference, new URL(owner, base));
   if (url.origin !== base.origin || url.pathname.endsWith('/')) return null;
   const key = '.' + decodeURIComponent(url.pathname);
+  if (isLazyAsset(key.slice(2))) {
+    assert.ok(!included.has(key), `${key} must stay lazy instead of pre-cached`);
+    return key;
+  }
   assert.ok(included.has(key), `${owner} needs ${reference}, missing from offline resources`);
   return key;
 }
@@ -72,15 +76,19 @@ test('homepage, stylesheets, manifest and the complete static module graph are a
   for (const icon of manifest.icons) required(icon.src, './manifest.webmanifest');
 });
 
-test('all dynamic voices, mascot states, category variants and complete font files stay cached', async () => {
+test('core fonts and default animations stay cached; full fonts and the alternate companion stay lazy', async () => {
   for (const voice of Object.values(TURTLE_LINES)) required(voice.src, './voice-pack.mjs');
   const animationFiles = new Set(Object.keys(moodLabels).flatMap(mood =>
     mood === 'walking' ? ['walking-left', 'walking-right'] : [mood === 'happy' ? 'happy-jump' : mood]));
   for (const name of animationFiles) required(`./assets/motion-original-v2/${name}.webp`, './app.mjs');
   for (const name of ['learning', 'life', 'play']) required(`./assets/category-flat-byg/${name}.png`, './app.mjs');
-  // Full font files must be retained even when only a core subset has rendered.
+  // Core subsets power the app UI offline; full fonts are fetched only when a
+  // rare glyph actually appears (online) and fall back to system fonts offline.
   for (const name of await readdir(new URL('./assets/fonts/', dist))) {
-    if (name.endsWith('.woff2')) required(`./assets/fonts/${name}`, './font-faces.css');
+    if (!name.endsWith('.woff2')) continue;
+    const key = `./assets/fonts/${name}`;
+    if (name.endsWith('.core.woff2')) assert.ok(included.has(key), `${key} must be offline cached`);
+    else assert.ok(!included.has(key), `${key} must stay lazy`);
   }
   for (const name of await readdir(new URL('./assets/voice-pack-v1/', dist))) {
     if (name.endsWith('.mp3')) required(`./assets/voice-pack-v1/${name}`, './voice-pack.mjs');
@@ -100,8 +108,11 @@ test('retired runtime variants are archived outside the deployable dist', async 
   assert.ok(!included.has('./sw.js'));
 });
 
-test('optional solid companion animations and still frame are cached', () => {
-  for (const name of ['ready.webp','waiting.webp','rest.webp','happy-jump.webp','walking-left.webp','walking-right.webp','still.png']) required(`./assets/motion-solid/${name}`);
+test('the alternate solid companion stays lazy except its static frame', async () => {
+  for (const name of await readdir(new URL('./assets/motion-solid/', dist))) {
+    if (name.endsWith('.webp')) assert.ok(!included.has(`./assets/motion-solid/${name}`), `${name} must stay lazy`);
+  }
+  required('./assets/motion-solid/still.png');
 });
 
 test('first-screen images stay within the install budget', () => {

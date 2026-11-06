@@ -433,17 +433,33 @@ function syncTurtleJourney(el,task,progress) {
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 function frameCompanion(el,style,asset,options){
+  el.dataset.companionStyle=normalizeCompanion(style);
   const frame=companionFraming(style,asset,options);el.classList.add('companion-art');
   el.style.setProperty('--companion-scale',String(frame.scale));el.style.setProperty('--companion-x',`${frame.x}%`);el.style.setProperty('--companion-y',`${frame.y}%`);
 }
 function renderCompanionPreviews(){
   $$('[data-companion-preview]').forEach(el=>{
-    const style=el.dataset.companionPreview,animated=!reducedMotion.matches;
-    const src=style==='original'?'./assets/turtle-mascot.png':companionAsset(style,'ready',animated);
+    // Keep the settings preview static: switching to the solid style must not
+    // pull its animation frames into the launch path.
+    const style=el.dataset.companionPreview;
+    const src=style==='original'?'./assets/turtle-mascot.png':companionAsset(style,'ready',false);
     if(el.getAttribute('src')!==src)el.setAttribute('src',src);
-    frameCompanion(el,style,'ready',{animated,preview:true});
+    frameCompanion(el,style,'ready',{animated:false,preview:true});
   });
 }
+/** Fall back to the cached still frame when a lazy companion frame cannot load. */
+function companionFallback(el) {
+  const style = normalizeCompanion(el.dataset.companionStyle || el.dataset.companionPreview || 'original');
+  el.dataset.companionFallback = style;
+  const still = style === 'solid' ? './assets/motion-solid/still.png' : './assets/turtle-mascot.png';
+  if (el.getAttribute('src') !== still) el.setAttribute('src', still);
+}
+document.addEventListener('error', event => {
+  const el = event.target;
+  if (el instanceof HTMLImageElement && el.classList.contains('companion-art')) companionFallback(el);
+}, true);
+// A later online session may fetch the lazy frames again.
+window.addEventListener('online', () => $$('.companion-art').forEach(el => { delete el.dataset.companionFallback; }));
 reducedMotion.addEventListener('change', () => {renderCompanionPreviews();updateMascots(now().getTime());});
 document.addEventListener('visibilitychange', () => updateMascots(now().getTime()));
 function updateMascots(at) {
@@ -455,11 +471,13 @@ function updateMascots(at) {
     const start=active?Math.min(taskStart(task),state.session.startedAt):task&&taskStart(task);
     const mood = mascotMood({task, session: state.session, at, start, end, celebrating: extra});
     // Blender-rendered joint animation. Switch sources only when needed so
-    // the frame sequence keeps playing across clock ticks.
-    const animated = state.settings.pet && !reducedMotion.matches && !document.hidden;
+    // the frame sequence keeps playing across clock ticks. The non-default
+    // style is lazy: if its frame cannot load, stay on the cached still frame.
+    const style = normalizeCompanion(state.settings.companion);
+    const animated = state.settings.pet && !reducedMotion.matches && !document.hidden && el.dataset.companionFallback !== style;
     const asset = mood==='happy'?'happy-jump':mood==='walking'?`walking-${tripFor(task).direction===1?'right':'left'}`:mood;
-    const src = companionAsset(state.settings.companion, asset, animated);
-    frameCompanion(el,state.settings.companion,asset,{animated});
+    const src = companionAsset(style, asset, animated);
+    frameCompanion(el,style,asset,{animated});
     el.classList.toggle('face-right', mood!=='walking' && mood!=='happy' && tripFor(task).direction===1 && !!el.closest('.turtle-turn'));
     el.classList.toggle('face-right-static', !animated && tripFor(task).direction===1 && !!el.closest('.turtle-turn'));
     if (el.getAttribute('src') !== src) el.setAttribute('src', src);
