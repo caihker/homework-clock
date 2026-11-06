@@ -4,7 +4,7 @@
 
 当前采用 PWA 本地自用方式：首次通过 HTTPS 加载并添加到 iPad 主屏，资源准备完成后日常离线使用。提醒只在打开时运行，回来后刷新计时；不开发微信小程序或后台通知。需要 iPadOS 15.4 或更新版本。
 
-完整项目资源纳入统一版本管理，私有仓库为 [caihker/homework-clock](https://github.com/caihker/homework-clock)，当前基线为 **v1.3.0**。目录范围、提交与发布流程见 [版本管理说明](docs/version-management.md)，各版本变化见 [CHANGELOG](CHANGELOG.md)。GitHub用于保存源码和资源，iPad仍通过下面的私有网址更新。
+完整项目资源纳入统一版本管理，私有仓库为 [caihker/homework-clock](https://github.com/caihker/homework-clock)，当前基线为 **v1.3.1**。目录范围、提交与发布流程见 [版本管理说明](docs/version-management.md)，各版本变化见 [CHANGELOG](CHANGELOG.md)。GitHub用于保存源码和资源，iPad仍通过下面的私有网址更新。
 
 ## 运行 Demo
 
@@ -17,6 +17,7 @@ npm start
 
 打开终端显示的本地地址，操作说明见 [Demo 说明](demo/README.md)。
 
+v1.3.1 阶段 2 进行中（第一批）：首屏图片约 5.7 MiB → 0.37 MiB，未引用素材移出部署目录（约 29 MB → 13 MB），离线包 17.7 MB → 12.3 MB；224 项检查通过。详见 [阶段 2 验收](docs/verification-v1.3.1.md)。
 v1.3.0 已完成（待按发布流程上线）：修复本机数据损坏或来自更新版本时被示例数据静默覆盖的问题，改为保留恢复副本、暂停自动保存并提供导出与重置入口；增加全局错误兜底，普通操作只写一次存储，提醒记录只保留当天，其他窗口保存后自动同步或提示重载。223 项检查通过，详见 [本轮验收](docs/verification-v1.3.0.md)。
 v1.2.4 已发布：全面复查后修复备份恢复的异步读取竞争、未保存录音草稿冲突提示，以及更新慢激活和激活信息缓存丢失的恢复。199 项检查通过；浏览器双窗口一键更新、最终构建切换及停服后离线重开通过，原计划、文字、完成统计和陪伴选择保留。详见 [本轮验收](docs/verification-v1.2.4.md)。
 

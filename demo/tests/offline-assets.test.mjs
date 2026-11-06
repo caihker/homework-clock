@@ -87,10 +87,13 @@ test('all dynamic voices, mascot states, category variants and complete font fil
   }
 });
 
-test('retired design directories are excluded without dropping current animations or changing source files', async () => {
+test('retired runtime variants are archived outside the deployable dist', async () => {
+  const deployed = await readdir(new URL('./assets/', dist));
+  const archived = new URL('../../design-assets/retired-runtime-assets/', import.meta.url);
   for (const directory of ['category-3d-v2', 'category-flat-v1', 'motion']) {
-    const originals = await readdir(new URL(`./assets/${directory}/`, dist));
-    assert.ok(originals.length > 0, 'retained source assets should not be deleted by the collector');
+    assert.ok(!deployed.includes(directory), `${directory} must not be deployed`);
+    const files = await readdir(new URL(`${directory}/`, archived));
+    assert.ok(files.length > 0, `${directory} sources must stay archived`);
     assert.ok(!assets.some(asset => asset.url.startsWith(`./assets/${directory}/`)));
   }
   assert.ok(assets.some(asset => asset.url.startsWith('./assets/motion-original-v2/')));
@@ -99,4 +102,22 @@ test('retired design directories are excluded without dropping current animation
 
 test('optional solid companion animations and still frame are cached', () => {
   for (const name of ['ready.webp','waiting.webp','rest.webp','happy-jump.webp','walking-left.webp','walking-right.webp','still.png']) required(`./assets/motion-solid/${name}`);
+});
+
+test('first-screen images stay within the install budget', () => {
+  const limits = {
+    './assets/category-flat-byg/learning.png': 120 * 1024,
+    './assets/category-flat-byg/life.png': 120 * 1024,
+    './assets/category-flat-byg/play.png': 120 * 1024,
+    './assets/turtle-icon.png': 120 * 1024,
+    './assets/turtle-mascot.png': 350 * 1024,
+  };
+  let total = 0;
+  for (const [key, limit] of Object.entries(limits)) {
+    const asset = included.get(key);
+    assert.ok(asset, `${key} must be offline cached`);
+    assert.ok(asset.bytes <= limit, `${key} is ${asset.bytes} bytes, budget ${limit}`);
+    total += asset.bytes;
+  }
+  assert.ok(total <= 800 * 1024, `first-screen images total ${total} bytes, budget 800 KiB`);
 });

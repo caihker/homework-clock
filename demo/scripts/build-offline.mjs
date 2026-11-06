@@ -6,13 +6,6 @@ import { fileURLToPath } from 'node:url';
 const demo = dirname(dirname(fileURLToPath(import.meta.url)));
 const dist = join(demo, 'dist');
 const excluded = new Set(['sw.js']);
-// These retained design iterations are not used by the current runtime. Keep
-// their source files on disk, but do not make a new iPad download them to start.
-const excludedDirectories = new Set([
-  'assets/category-3d-v2',
-  'assets/category-flat-v1',
-  'assets/motion',
-]);
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const localPath = (root, path) => relative(root, path).split('\\').join('/');
 
@@ -22,9 +15,8 @@ async function walk(directory, root) {
   for (const entry of entries) {
     if (entry.name.startsWith('.')) continue;
     const path = join(directory, entry.name);
-    const key = localPath(root, path);
-    if (entry.isDirectory() && !excludedDirectories.has(key)) files.push(...await walk(path, root));
-    else if (entry.isFile() && !excluded.has(key)) files.push(path);
+    if (entry.isDirectory()) files.push(...await walk(path, root));
+    else if (entry.isFile() && !excluded.has(localPath(root, path))) files.push(path);
   }
   return files;
 }

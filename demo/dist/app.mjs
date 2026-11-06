@@ -68,6 +68,7 @@ let loadIssue = null;
 let writeBlocked = false;
 let tickTimer = null;
 let fatalReported = false;
+let lastRejectionToast = 0;
 let bootBarrier=readUpdateLock({storage:stateStorage,key:UPDATE_LOCK});
 let updateLocked = !!bootBarrier;
 let bootTimer;
@@ -219,7 +220,12 @@ function recoveryCopyRaw() {
 }
 function refreshRecoveryCopyActions() {
   const actions = $('#recovery-copy-actions');
-  if (actions) actions.hidden = !recoveryCopyRaw();
+  if (!actions) return;
+  actions.hidden = !recoveryCopyRaw();
+  // Deleting the only copy while writes are blocked would lose the last
+  // faithful bytes; keep it available until the read-only state is resolved.
+  const del = $('#delete-recovery-copy');
+  if (del) del.hidden = writeBlocked;
 }
 function exportRecoveryData() {
   const p = clockParts(new Date());
@@ -263,7 +269,11 @@ window.addEventListener('error', event => reportFatal(event.error || event.messa
 // freeze saving; genuine thrown errors still go through reportFatal().
 window.addEventListener('unhandledrejection', event => {
   try { console.error(event.reason); } catch { /* console may be unavailable */ }
-  if (!fatalReported) toast('有一个后台操作没有完成，可以继续使用。');
+  const at = Date.now();
+  if (!fatalReported && at - lastRejectionToast > 5000) {
+    lastRejectionToast = at;
+    toast('有一个后台操作没有完成，可以继续使用。');
+  }
 });
 $('#recovery-export').onclick = exportRecoveryData;
 $('#recovery-retry').onclick = () => location.reload();
@@ -314,6 +324,10 @@ function toast(message, undo) {
   clearTimeout(toastTimer); $('#toast-message').textContent = message;
   undoAction = undo; $('#toast-undo').hidden = !undo; $('#toast').classList.add('visible');
   toastTimer = setTimeout(()=>$('#toast').classList.remove('visible'), undo ? 8000 : 4300);
+}
+/** Success copy must not claim a save that the last persist did not confirm. */
+function savedNotice(message) {
+  return storageOK ? message : '当前更改暂未保存，请检查本机存储。';
 }
 $('#toast-undo').onclick = () => { if (undoAction) undoAction(); $('#toast').classList.remove('visible'); undoAction = null; };
 function closeDialog(dialog) { if (dialog.open) dialog.close(); }
@@ -527,7 +541,7 @@ $('#delete-task').onclick=()=>{
   const t=getTask($('#task-id').value);if(!t)return;
   confirmAction('删除这项安排？',`“${t.title}”将从这一天移除，其他安排保持原时间。`,()=>{
     if(state.session?.taskId===t.id)stopSession();state.tasks=state.tasks.filter(x=>x.id!==t.id);persist();closeDialog($('#task-dialog'));render();
-    toast('安排已删除。',()=>{if(validateTask(t,state.tasks)){toast('原时间已有其他安排，请重新添加。');return;}state.tasks.push(t);persist();render();});
+    toast(savedNotice('安排已删除。'),()=>{if(validateTask(t,state.tasks)){toast('原时间已有其他安排，请重新添加。');return;}state.tasks.push(t);persist();render();});
   });
 };
 $('#template-chips').onclick=e=>{const b=e.target.closest('[data-template]');if(b)applyTemplate(b.dataset.template);};
@@ -541,9 +555,9 @@ function completeTask(t) {
   if(!t)return;const was=t.completed;if(state.session?.taskId===t.id)stopSession();t.completed=true;celebration={date:t.date,until:Date.now()+5000};
   closeDialog($('#focus-dialog'));closeDialog($('#finish-dialog'));persist();render();
   playTurtle('complete');
-  toast(`${t.title}完成啦，给自己一点掌声。`,()=>{celebration=null;t.completed=was;persist();render();});
+  toast(savedNotice(`${t.title}完成啦，给自己一点掌声。`),()=>{celebration=null;t.completed=was;persist();render();});
 }
-function undoComplete(t){celebration=null;t.completed=false;persist();render();toast('已恢复为待完成，不会增加专注记录。');}
+function undoComplete(t){celebration=null;t.completed=false;persist();render();toast(savedNotice('已恢复为待完成，不会增加专注记录。'));}
 function startTask(t) {
   if(!t)return;
   if(t.date!==dateKey(now())){openTask(t.id);toast('请在计划当天开始计时。');return;}
@@ -565,7 +579,7 @@ $('#pause-session').onclick=()=>{
   playTurtle(state.session.paused?'break-start':'break-end');
 };
 $('#complete-session').onclick=()=>completeTask(getTask(focusTaskId));
-$('#focus-sound').onclick=()=>{state.settings.sound=!state.settings.sound;if(!state.settings.sound)voicePlayer.stop();persist();toast(state.settings.sound?'声音提醒已开启。':'声音提醒已关闭。');};
+$('#focus-sound').onclick=()=>{state.settings.sound=!state.settings.sound;if(!state.settings.sound)voicePlayer.stop();persist();toast(savedNotice(state.settings.sound?'声音提醒已开启。':'声音提醒已关闭。'));};
 function openFinish(t) { finishTaskId=t.id;$('#finish-title').textContent=`${t.title}做完了吗？`;$('#finish-error').textContent='';closeDialog($('#focus-dialog'));showDialog('#finish-dialog');updateMascots(now().getTime()); }
 $('#finish-done').onclick=()=>completeTask(getTask(finishTaskId));
 $('#finish-later').onclick=()=>{closeDialog($('#finish-dialog'));toast('已经记下，安排下一段时间时再接着做。');};
@@ -576,7 +590,7 @@ $('#finish-extend').onclick=()=>{
   if(ending>MAX_PICKER_MINUTES){$('#finish-error').textContent='今天最晚安排到 21:50，请另选时间继续。';return;}
   const updated={...t,end:toTime(ending),completed:false};const error=validateTask(updated,state.tasks);
   if(error){$('#finish-error').textContent=error+' 请返回时间表调整。';return;}
-  Object.assign(t,updated);closeDialog($('#finish-dialog'));persist();render();startTask(t);toast(`再给自己 10 分钟，计划 ${t.end} 结束。`);
+  Object.assign(t,updated);closeDialog($('#finish-dialog'));persist();render();startTask(t);toast(savedNotice(`再给自己 10 分钟，计划 ${t.end} 结束。`));
 };
 
 function setDate(value) { if(!Number.isFinite(dateAtTime(value).getTime()))return;state.selectedDate=value;filter='all';$$('[data-filter]').forEach(b=>b.classList.toggle('active',b.dataset.filter===filter));persist();render(); }
@@ -590,11 +604,11 @@ $('#confirm-copy').onclick=()=>{
   if(date===state.selectedDate){$('#copy-error').textContent='请选择另一天，避免重复安排。';return;}
   const copies=dayTasks().map(t=>({...t,id:crypto.randomUUID(),date,completed:false}));
   for(const t of copies){const error=validateTask(t,state.tasks);if(error){$('#copy-error').textContent=`${date} 已有时间冲突，请换一天或先调整安排。`;return;}}
-  state.tasks.push(...copies);persist();closeDialog($('#copy-dialog'));setDate(date);toast('安排已复制，新的一天慢慢来。');
+  state.tasks.push(...copies);persist();closeDialog($('#copy-dialog'));setDate(date);toast(savedNotice('安排已复制，新的一天慢慢来。'));
 };
 $('#demo-clock').onclick=()=>showDialog('#clock-dialog');
 function changeClock(value) {
-  const change=()=>{stopSession();closeDialog($('#focus-dialog'));closeDialog($('#finish-dialog'));state.clock=value==='real'?{mode:'real'}:{mode:'demo',simulatedAt:dateAtTime(state.selectedDate,value).getTime(),anchor:Date.now()};state.selectedDate=dateKey(now());lastTick=now().getTime();closeDialog($('#clock-dialog'));persist();render();toast(value==='real'?'已切换到北京时间（GMT+8）。':`已来到 ${value}，体验这一段时间。`);};
+  const change=()=>{stopSession();closeDialog($('#focus-dialog'));closeDialog($('#finish-dialog'));state.clock=value==='real'?{mode:'real'}:{mode:'demo',simulatedAt:dateAtTime(state.selectedDate,value).getTime(),anchor:Date.now()};state.selectedDate=dateKey(now());lastTick=now().getTime();closeDialog($('#clock-dialog'));persist();render();toast(savedNotice(value==='real'?'已切换到北京时间（GMT+8）。':`已来到 ${value}，体验这一段时间。`));};
   state.session?confirmAction('切换演示时间？','当前计时将结束，已记录的时间会保留。',change):change();
 }
 $$('[data-clock]').forEach(b=>b.onclick=()=>changeClock(b.dataset.clock));$('#use-real-time').onclick=()=>changeClock('real');
@@ -764,7 +778,7 @@ $('#backup-file').onchange = async event => {
   } catch (error) { if (backupImportIsCurrent(generation)) $('#backup-result').textContent = error.message || '无法读取这份备份，原数据未改变。'; }
   finally { if (generation === backupImportGeneration) setBackupImportBusy(false); }
 };
-$('#reset-demo').onclick=()=>{if(writeBlocked){toast('本机数据待恢复，请先处理首页的恢复提示。');return;}confirmAction('重新体验示例？','当前浏览器中的计划和专注记录会重置，家庭设置会保留。',()=>{const resetDate=dateKey(new Date());state.tasks=createSampleTasks(resetDate);state.history=[];state.session=null;state.notified=[];state.selectedDate=resetDate;state.clock={mode:'demo',simulatedAt:dateAtTime(resetDate,"10:20").getTime(),anchor:Date.now()};lastTick=now().getTime();closeDialog($('#settings-dialog'));closeDialog($('#focus-dialog'));closeDialog($('#finish-dialog'));filter='all';$$('[data-filter]').forEach(b=>b.classList.toggle('active',b.dataset.filter==='all'));persist();render();toast('示例已就绪，开工！');});};
+$('#reset-demo').onclick=()=>{if(writeBlocked){toast('本机数据待恢复，请先处理首页的恢复提示。');return;}confirmAction('重新体验示例？','当前浏览器中的计划和专注记录会重置，家庭设置会保留。',()=>{const resetDate=dateKey(new Date());state.tasks=createSampleTasks(resetDate);state.history=[];state.session=null;state.notified=[];state.selectedDate=resetDate;state.clock={mode:'demo',simulatedAt:dateAtTime(resetDate,"10:20").getTime(),anchor:Date.now()};lastTick=now().getTime();closeDialog($('#settings-dialog'));closeDialog($('#focus-dialog'));closeDialog($('#finish-dialog'));filter='all';$$('[data-filter]').forEach(b=>b.classList.toggle('active',b.dataset.filter==='all'));persist();render();toast(savedNotice('示例已就绪，开工！'));});};
 
 function tick({ silent = false } = {}) {
   if (document.hidden||updateLocked) return;
@@ -846,7 +860,12 @@ if(navigator.serviceWorker)createUpdateSession({
   onReload:()=>{releaseUpdateLock(stateStorage,UPDATE_LOCK,updateTransaction?.transactionId);location.reload();},
 });
 window.addEventListener('storage', event => {
-  if (event.key !== STORE || updateLocked || writeBlocked || event.newValue == null || event.newValue === lastStoredRaw) return;
+  if (event.key !== STORE || updateLocked || event.newValue == null || event.newValue === lastStoredRaw) return;
+  // Another window may have repaired the data this page is waiting to recover.
+  if (writeBlocked) {
+    if (classifyStoredState(event.newValue).status === 'ok') toast('其他窗口已保存可读取的数据，刷新页面即可恢复。');
+    return;
+  }
   // Never replace the callback of the dialog that is already asking the user
   // to confirm a delete, reset or backup restore.
   if ($('#confirm-dialog').open || importingBackup) { toast('其他窗口已保存新数据；请完成当前操作后刷新页面。'); return; }
