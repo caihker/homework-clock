@@ -1,6 +1,6 @@
-import { clockParts, dateAtTime, dateKey, durationMinutes, toMinutes } from './core.mjs';
+import { clockParts, dateAtTime, dateKey, durationMinutes, toMinutes, toTime } from './core.mjs';
 import { normalizeSession, sessionRemainingMs } from './session-timer.mjs';
-import { MIN_PICKER_MINUTES, MAX_START_MINUTES } from './time-picker.mjs';
+import { MIN_PICKER_MINUTES, MAX_START_MINUTES, MAX_PICKER_MINUTES } from './time-picker.mjs';
 
 const clampFraction = value => Math.min(1, Math.max(0, value));
 
@@ -55,4 +55,29 @@ export function nextTask(tasks, currentId, atMs) {
   const currentIndex = currentId ? list.findIndex(task => task.id === currentId) : -1;
   const candidates = currentIndex >= 0 ? list.slice(currentIndex + 1) : list;
   return candidates.find(task => dateAtTime(task.date, task.start).getTime() > atMs) || null;
+}
+
+/**
+ * Insertion index for the "现在" line in a day-sorted task list. Returns the
+ * count of plans that have already started, so equal boundaries stay stable.
+ */
+export function nowMarkerIndex(tasks, atMs) {
+  if (!Number.isFinite(atMs) || !Array.isArray(tasks)) return -1;
+  const list = tasks
+    .filter(task => task && Number.isFinite(dateAtTime(task?.date, task?.start).getTime()))
+    .sort((a, b) => dateAtTime(a.date, a.start).getTime() - dateAtTime(b.date, b.start).getTime());
+  const index = list.findIndex(task => dateAtTime(task.date, task.start).getTime() > atMs);
+  return index === -1 ? list.length : index;
+}
+
+/**
+ * Shift a planned slot by whole ten-minute steps without leaving the picker
+ * window. Returns null for invalid input or a boundary-crossing result.
+ */
+export function shiftSlot(start, end, deltaMinutes, { minStart = MIN_PICKER_MINUTES, maxStart = MAX_START_MINUTES, maxEnd = MAX_PICKER_MINUTES } = {}) {
+  const from = toMinutes(start), to = toMinutes(end);
+  if (!Number.isFinite(from) || !Number.isFinite(to) || !Number.isInteger(deltaMinutes)) return null;
+  const nextStart = from + deltaMinutes, nextEnd = to + deltaMinutes;
+  if (nextStart < minStart || nextStart > maxStart || nextEnd > maxEnd || nextEnd <= nextStart) return null;
+  return { start: toTime(nextStart), end: toTime(nextEnd) };
 }

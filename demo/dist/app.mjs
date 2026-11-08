@@ -2,14 +2,14 @@ import { companionAsset, companionFraming, normalizeCompanion } from './companio
 import { completionStats } from './completion-stats.mjs';
 import { advanceTurtle } from './turtle-travel.mjs?v=progress-sync-1';
 import { mascotMood, moodLabels } from './mascot.mjs';
-import { toMinutes, toTime, validateTask, remainingSeconds, dateKey, createSampleTasks, TIME_ZONE, dateAtTime, shiftDate, clockParts } from './core.mjs';
-import { setupTimePicker, MAX_START_MINUTES, MAX_PICKER_MINUTES, isWithinSchedulingWindow } from './time-picker.mjs?v=1.2.2';
+import { toMinutes, toTime, validateTask, isConflict, remainingSeconds, dateKey, createSampleTasks, TIME_ZONE, dateAtTime, shiftDate, clockParts } from './core.mjs';
+import { setupTimePicker, MIN_PICKER_MINUTES, MAX_START_MINUTES, MAX_PICKER_MINUTES, isWithinSchedulingWindow } from './time-picker.mjs?v=1.2.2';
 import { createSession, normalizeSession, sessionElapsedMs, sessionRemainingMs, pauseSession, resumeSession, sessionDeadlineMs, sessionBreakRemainingMs } from './session-timer.mjs?v=0.4.1';
 import { TURTLE_LINES, createVoicePlayer } from './voice-pack.mjs?v=1';
 import { createBackup, parseBackup, MAX_BACKUP_BYTES } from './backup.mjs';
 import { selectSceneVoice, countSceneVoices } from './scene-voices.mjs';
 import { createSceneVoiceSettings } from './scene-voice-settings.mjs';
-import { taskProgress, suggestStartMinutes, compactCountdown, nextTask } from './plan-view.mjs';
+import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, nowMarkerIndex, shiftSlot } from './plan-view.mjs';
 import { collectDueReminders } from './reminder-events.mjs';
 import { createUpdateGuard, hasSettingsDraft } from './update-guard.mjs';
 import { createUpdateSession } from './update-session.mjs';
@@ -39,6 +39,7 @@ const paths = {
   play: '<path d="m8 4 12 8-12 8V4Z"/>', pause: '<path d="M8 5v14M16 5v14"/>',
   expand: '<path d="M8 3H3v5m13-5h5v5M3 16v5h5m8 0h5v-5"/>',
   volume: '<path d="m11 4-6 5H2v6h3l6 5V4Zm4 4c3 2 3 6 0 8m3-11c5 4 5 10 0 14"/>',
+  'volume-off': '<path d="m11 4-6 5H2v6h3l6 5V4Z"/><path d="m16 9 5 6m0-6-5 6"/>',
   'check-circle': '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>', check: '<path d="m5 12 4 4L19 6"/>',
   copy: '<rect x="8" y="8" width="13" height="13" rx="3"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>',
   x: '<path d="m6 6 12 12M6 18 18 6"/>',
@@ -393,6 +394,7 @@ function render() {
   $('.focus-pet').hidden=!state.settings.pet;
   $('.finish-mascot').hidden=!state.settings.pet;
   $('#copy-day').disabled=!tasks.length;
+  $$('[data-filter]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.filter===filter)));
   const upcoming=nextTask(tasks,current?.id,at);
   nextTaskId=upcoming?.id||null;
   $('#next-task').hidden=!upcoming;
@@ -408,8 +410,15 @@ function render() {
 }
 function renderTimeline(tasks,current,nextId) {
   const visible=tasks.filter(t=>filter==='all'||t.type===filter);
-  if(!visible.length) { $('#timeline').innerHTML=`<div class="empty-state">${state.settings.pet?'<img class="empty-mascot" src="./assets/turtle-mascot.png" alt="小乌龟陪你安排新的一天">':'<div class="empty-icon">'+icon('sun')+'</div>'}<h3>${tasks.length?'这里还空着':'新的一天，怎么安排？'}</h3><button class="button secondary" data-add>加一项</button></div>`;return; }
+  if(!visible.length) {
+    const hasTasks=tasks.length>0;
+    $('#timeline').innerHTML=`<div class="empty-state">${state.settings.pet?'<img class="empty-mascot" src="./assets/turtle-mascot.png" alt="小乌龟陪你安排新的一天">':'<div class="empty-icon">'+icon('sun')+'</div>'}<h3>${hasTasks?'这里还空着':'今天还没有安排'}</h3><button class="button secondary" data-add>${hasTasks?'加一项':'添加第一项'}</button></div>`;
+    return;
+  }
   const at=now().getTime();
+  const showNow=filter==='all'&&state.selectedDate===dateKey(new Date(at));
+  const markerIndex=showNow?nowMarkerIndex(tasks,at):-1;
+  const nowRow=`<div class="now-row" role="presentation"><span class="now-line"></span><span class="now-label">现在 ${clockText(new Date(at))}</span></div>`;
   const nextToStart=tasks.find(t=>!t.completed&&t.date===dateKey(new Date(at))&&taskStart(t)>at&&t.id!==state.session?.taskId);
   $('#timeline').innerHTML=visible.map((t,i)=>{
     const running=state.session?.taskId===t.id;
@@ -419,8 +428,8 @@ function renderTimeline(tasks,current,nextId) {
     const manualStart=t.id===nextToStart?.id&&t.id!==current?.id?`<button class="task-start" data-start="${escape(t.id)}" aria-label="现在开始：${escape(t.title)}" title="现在开始">${icon('play')}</button>`:'';
     const item=`<article class="timeline-item ${live?'is-current':''} ${t.completed?'is-completed':''}" data-type="${t.type}"${t.id===current?.id?' aria-current="step"':''}><div class="time-column"><span class="start-time">${t.start}</span><span class="end-time">${t.end}</span></div><div class="timeline-rail"><span class="timeline-dot">${categoryIcon(t.type)}</span></div><button class="task-content" data-edit="${escape(t.id)}" aria-label="编辑${escape(t.title)}"><span class="task-meta"><span class="type-label">${TYPES[t.type]}</span>${status?`<span class="task-status ${live?'live':''} ${nextMark&&!live?'next':''}">${status}</span>`:''}</span><span class="task-name">${escape(t.title)}</span></button>${manualStart}<button class="task-check ${t.completed?'checked':''}" data-complete="${escape(t.id)}" aria-label="${t.completed?'撤销完成':'标记完成'}：${escape(t.title)}">${t.completed?icon('check'):''}</button><button class="task-edit" data-edit="${escape(t.id)}" aria-label="编辑${escape(t.title)}">${icon('more')}</button></article>`;
     const next=visible[i+1],gap=next?toMinutes(next.start)-toMinutes(t.end):0;
-    return item+(filter==='all'&&gap>0?`<div class="gap-row"><span class="gap-line"></span><span class="gap-label">空闲 ${durationLabel(gap)}</span></div>`:'');
-  }).join('');
+    return (showNow&&i===markerIndex?nowRow:'')+item+(filter==='all'&&gap>0?`<div class="gap-row"><span class="gap-line"></span><span class="gap-label">空闲 ${durationLabel(gap)}</span></div>`:'');
+  }).join('')+(showNow&&markerIndex>=visible.length?nowRow:'');
 }
 let celebration = null;
 const turtleTrips = new Map();
@@ -509,8 +518,10 @@ function celebrateTask(t) {
 function updateClocks() {
   const n=now(),at=n.getTime(),t=getTask(currentId);
   updateMascots(at);
+  const focusSound=$('#focus-sound');
+  if(focusSound){focusSound.innerHTML=icon(state.settings.sound?'volume':'volume-off');focusSound.setAttribute('aria-label',state.settings.sound?'关闭声音提醒':'开启声音提醒');}
   $('#clock-mode').textContent=`${state.clock.mode==='demo'?'演示':'北京'} ${clockText(n)}`;
-  $('#demo-clock').title=`${state.clock.mode==='demo'?'演示时间':'北京时间'} · GMT+8`;
+  $('#clock-display').title=`${state.clock.mode==='demo'?'演示时间':'北京时间'} · GMT+8`;
   const active=t&&state.session?.taskId===t.id;
   const upcoming=t&&!active&&taskStart(t)>at;
   const partsNow=clockParts(n);
@@ -575,9 +586,29 @@ $('#delete-task').onclick=()=>{
   });
 };
 $('#template-chips').onclick=e=>{const b=e.target.closest('[data-template]');if(b)applyTemplate(b.dataset.template);};
+function setTaskFormError(message){$('#form-error').textContent=message;}
+function shiftTaskForm(delta){
+  const slot=shiftSlot($('#task-start').value,$('#task-end').value,delta);
+  if(!slot){setTaskFormError('已到可选时间边界（08:00–21:50）。');return;}
+  const type=$('input[name="task-type"]:checked')?.value||'study';
+  const id=$('#task-id').value||undefined;
+  if(isConflict({id,date:state.selectedDate,start:slot.start,end:slot.end,type},state.tasks)){setTaskFormError('调整后与已有安排冲突。');return;}
+  $('#task-start').value=slot.start;$('#task-end').value=slot.end;timePicker.sync();setTaskFormError('');
+}
+$('#task-shift-earlier').onclick=()=>shiftTaskForm(-10);
+$('#task-shift-later').onclick=()=>shiftTaskForm(10);
+$('#task-copy').onclick=()=>{
+  const title=$('#task-title').value.trim();
+  if(!title){setTaskFormError('先给这项安排起个名字吧。');return;}
+  const original=getTask($('#task-id').value);
+  const copy={...(original||{}),id:crypto.randomUUID(),date:shiftDate(state.selectedDate,1),title,start:$('#task-start').value,end:$('#task-end').value,type:$('input[name="task-type"]:checked')?.value||'study',completed:false};
+  const error=validateTask(copy,state.tasks);
+  if(error){setTaskFormError('复制到明天会有冲突，请先调整时间。');return;}
+  state.tasks.push(copy);persist();closeDialog($('#task-dialog'));render();toast(savedNotice('已复制到明天。'));
+};
 $('#add-task').onclick=$('#add-timeline').onclick=()=>openTask();
+
 $('#next-task').onclick=()=>{ if(nextTaskId)openTask(nextTaskId); };
-$('#templates-nav').onclick=()=>{closeDialog($('#settings-dialog'));openTask();$('#template-chips').classList.add('highlight');setTimeout(()=>$('#template-chips').classList.remove('highlight'),1800);};
 $('#timeline').onclick=e=>{
   const edit=e.target.closest('[data-edit]'),complete=e.target.closest('[data-complete]'),start=e.target.closest('[data-start]');
   if(start)startTask(getTask(start.dataset.start));else if(edit)openTask(edit.dataset.edit);else if(complete){const t=getTask(complete.dataset.complete);t.completed?undoComplete(t):completeTask(t);}else if(e.target.closest('[data-add]'))openTask();
@@ -637,7 +668,7 @@ $('#confirm-copy').onclick=()=>{
   for(const t of copies){const error=validateTask(t,state.tasks);if(error){$('#copy-error').textContent=`${date} 已有时间冲突，请换一天或先调整安排。`;return;}}
   state.tasks.push(...copies);persist();closeDialog($('#copy-dialog'));setDate(date);toast(savedNotice('安排已复制，新的一天慢慢来。'));
 };
-$('#demo-clock').onclick=()=>showDialog('#clock-dialog');
+$('#demo-clock-settings').onclick=()=>showDialog('#clock-dialog');
 function changeClock(value) {
   const change=()=>{stopSession();closeDialog($('#focus-dialog'));closeDialog($('#finish-dialog'));state.clock=value==='real'?{mode:'real'}:{mode:'demo',simulatedAt:dateAtTime(state.selectedDate,value).getTime(),anchor:Date.now()};state.selectedDate=dateKey(now());lastTick=now().getTime();closeDialog($('#clock-dialog'));persist();render();toast(savedNotice(value==='real'?'已切换到北京时间（GMT+8）。':`已来到 ${value}，体验这一段时间。`));};
   state.session?confirmAction('切换演示时间？','当前计时将结束，已记录的时间会保留。',change):change();

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { dateAtTime } from '../dist/core.mjs';
 import { createSession, pauseSession, resumeSession } from '../dist/session-timer.mjs';
-import { taskProgress, suggestStartMinutes, compactCountdown, nextTask } from '../dist/plan-view.mjs';
+import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, nowMarkerIndex, shiftSlot } from '../dist/plan-view.mjs';
 
 const task = { id: 'math', date: '2026-11-01', title: '数学试卷', start: '10:00', end: '12:00', type: 'study' };
 const at = time => dateAtTime(task.date, time).getTime();
@@ -85,4 +85,27 @@ test('the next item is safe for invalid dates and non-advancing clocks', () => {
   const snapshot = structuredClone([task]);
   nextTask([task], null, at('09:00'));
   assert.deepEqual([task], snapshot);
+});
+
+test('the now marker lands before the next plan and after all started plans', () => {
+  const lunch = { ...task, id: 'lunch', start: '12:30', end: '13:30', type: 'life' };
+  const tasks = [lunch, task];
+  assert.equal(nowMarkerIndex(tasks, at('09:00')), 0);
+  assert.equal(nowMarkerIndex(tasks, at('10:30')), 1);
+  assert.equal(nowMarkerIndex(tasks, at('11:00')), 1);
+  assert.equal(nowMarkerIndex(tasks, at('12:30')), 2);
+  assert.equal(nowMarkerIndex(tasks, at('18:00')), 2);
+  assert.equal(nowMarkerIndex([], at('10:00')), 0);
+  assert.equal(nowMarkerIndex('nope', at('10:00')), -1);
+  assert.equal(nowMarkerIndex(tasks, NaN), -1);
+});
+
+test('ten-minute shifts stay inside the picker window and preserve duration', () => {
+  assert.deepEqual(shiftSlot('10:00', '11:00', 10), { start: '10:10', end: '11:10' });
+  assert.deepEqual(shiftSlot('10:00', '11:00', -10), { start: '09:50', end: '10:50' });
+  assert.deepEqual(shiftSlot('21:00', '21:50', -10), { start: '20:50', end: '21:40' });
+  assert.equal(shiftSlot('21:00', '21:50', 10), null);
+  assert.equal(shiftSlot('08:00', '09:00', -10), null);
+  assert.equal(shiftSlot('bad', '11:00', 10), null);
+  assert.equal(shiftSlot('10:00', '11:00', 1.5), null);
 });

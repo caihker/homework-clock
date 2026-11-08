@@ -134,9 +134,9 @@ main { max-width: 1240px; margin: 0 auto; padding: 18px 40px 22px; }
 .task-edit svg.icon { width: 18px; height: 18px; }
 .timeline-item.is-completed { opacity: .58; }
 .timeline-item.is-completed .task-name { text-decoration: line-through; text-decoration-thickness: 1px; }
-.gap-row { height: 14px; display: flex; align-items: center; padding-left: 7px; gap: 9px; color: #8c8791; }
+.gap-row { height: 20px; display: flex; align-items: center; padding-left: 7px; gap: 9px; color: var(--muted); }
 .gap-line { width: 38px; border-top: 1px dashed #c5c0c9; }
-.gap-label { display: inline-flex; align-items: center; gap: 4px; font-size: 9px; line-height: 1; white-space: nowrap; }
+.gap-label { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; line-height: 1; white-space: nowrap; }
 .gap-label .icon { width: 10px; height: 10px; }
 .schedule-bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; border-top: 1px solid var(--line); padding-top: 8px; min-height: 43px; }
 .text-button { border: 0; background: transparent; display: inline-flex; align-items: center; gap: 6px; padding: 5px 1px; min-height: 34px; font-size: 12px; font-weight: 700; text-align: left; border-radius: 4px; }
@@ -257,11 +257,12 @@ summary::-webkit-details-marker { display: none; }
 .focus-pet { margin-top: 23px; }
 .focus-pet img { width: 88px; height: 74px; }
 
-.toast { position: fixed; z-index: 100; bottom: 25px; left: 50%; transform: translate(-50%, 15px); display: flex; align-items: center; gap: 17px; width: max-content; max-width: calc(100% - 32px); padding: 12px 17px; background: var(--ink); border: 2px solid var(--ink); border-radius: 10px; color: #fff; box-shadow: 3px 3px 0 #24232a33; font-size: 13px; font-weight: 600; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .16s, transform .16s, visibility .16s; }
-.toast.visible { transform: translate(-50%, 0); opacity: 1; visibility: visible; pointer-events: auto; }
+.toast { position: fixed; z-index: 100; bottom: calc(78px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translate(-50%, 15px); display: flex; align-items: center; gap: 17px; width: max-content; max-width: calc(100% - 32px); padding: 12px 17px; background: var(--ink); border: 2px solid var(--ink); border-radius: 10px; color: #fff; box-shadow: 3px 3px 0 #24232a33; font-size: 13px; font-weight: 600; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .16s, transform .16s, visibility .16s; }
+.toast.visible { transform: translate(-50%, 0); opacity: 1; visibility: visible; pointer-events: none; }
+.toast.visible #toast-undo { pointer-events: auto; }
 .toast button { border: 0; border-left: 1px solid #ffffff55; background: none; color: var(--yellow); padding: 0 0 0 15px; font-size: 12px; font-weight: 800; white-space: nowrap; }
 #toast-message { min-width: 0; overflow-wrap: anywhere; }
-dialog .toast { left: 50%; }
+dialog .toast { left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
 
 @media (min-width: 1400px) {
   .topbar { padding-top: 28px; padding-bottom: 28px; }
@@ -368,9 +369,9 @@ dialog .toast { left: 50%; }
   .task-check { flex-basis: 20px; width: 20px; height: 20px; border-radius: 5px; }
   .task-edit { flex-basis: 17px; width: 17px; }
   .task-edit svg.icon { width: 16px; height: 16px; }
-  .gap-row { gap: 7px; height: 11px; padding-left: 4px; }
+  .gap-row { gap: 7px; height: 16px; padding-left: 4px; }
   .gap-line { width: 32px; }
-  .gap-label { font-size: 8px; }
+  .gap-label { font-size: 11px; }
   .schedule-bottom { margin-top: 9px; }
   .save-state { margin-top: 13px; font-size: 9px; }
   .modal { padding: 22px 18px; max-height: calc(100dvh - 30px); border-width: 2px; box-shadow: 5px 5px 0 var(--ink); }
@@ -476,6 +477,27 @@ dialog .toast { left: 50%; }
 .capability-note { margin:0 0 8px; font-size:12px; color:var(--muted); }
 .capability-note summary { cursor:pointer; display:inline-flex; align-items:center; gap:6px; min-height:32px; font-weight:650; }
 .capability-note p { margin-top:4px; line-height:1.55; max-width:640px; }
+
+
+/* Timeline "现在" marker and the folded review card. */
+.now-row { display:flex; align-items:center; gap:9px; min-height:22px; padding-right:4px; color:var(--coral); }
+.now-line { flex:1; border-top:2px dashed var(--coral); }
+.now-label { font-size:11px; font-weight:800; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.review-card { margin-top:10px; border-top:1px solid var(--line); padding-top:6px; }
+.review-card > summary { cursor:pointer; display:flex; align-items:center; gap:8px; min-height:38px; font-size:13px; font-weight:800; list-style:none; }
+.review-card > summary::-webkit-details-marker { display:none; }
+.review-card > summary::before { content:"▸"; font-size:10px; transition:transform .15s; }
+.review-card[open] > summary::before { transform:rotate(90deg); }
+.review-card > summary span { margin-left:auto; color:var(--muted); font-size:12px; font-weight:600; }
+.review-body { display:flex; flex-direction:column; gap:10px; padding-bottom:6px; }
+.review-body .daily-summary { margin-top:6px; }
+.review-body .homework-summary { margin:0; }
+
+.topbar-clock { pointer-events:none; }
+.settings-shortcuts { display:flex; flex-wrap:wrap; gap:0 18px; align-items:center; }
+
+.task-quick-actions { display:flex; flex-wrap:wrap; gap:2px 16px; align-items:center; margin:4px 0 12px; }
+.task-quick-actions .text-button { min-height:30px; }
 
 /* time-picker.css */
 /* The time picker shares the comic palette with the rest of the app. */
