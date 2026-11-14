@@ -12,7 +12,7 @@ import { collectDueReminders } from './reminder-events.mjs';
 import { createUpdateGuard, hasSettingsDraft } from './update-guard.mjs';
 import { createUpdateSession } from './update-session.mjs';
 import { commitLocalState, readUpdateLock, releaseUpdateLock } from './update-storage.mjs';
-import { STATE_KEY, RECOVERY_KEY, classifyStoredState, normalizeStoredState, pruneNotified, chooseRecoveryExport, inspectStorage, notesForDate } from './store.mjs';
+import { STATE_KEY, RECOVERY_KEY, classifyStoredState, normalizeStoredState, pruneNotified, chooseRecoveryExport, inspectStorage, notesForDate, dailyDate } from './store.mjs';
 import { TASK_TYPE_LABELS, DEFAULT_SETTINGS, TEMPLATE_MIN_MINUTES, TEMPLATE_MAX_MINUTES } from './schema.mjs';
 import { buildCalendar } from './ics.mjs';
 import { $, $$, icon, escape, categoryIcon, setIcons, setCategoryIcons } from './dom.mjs';
@@ -32,7 +32,7 @@ const TYPES = TASK_TYPE_LABELS;
 const timePicker = setupTimePicker();
 const defaults = DEFAULT_SETTINGS;
 const actualToday = dateKey(new Date());
-const sampleState = () => ({ version: 1, localUseVersion: 1, tasks: createSampleTasks(actualToday), selectedDate: actualToday, settings: { ...defaults }, history: [], notes: [], templates: [], session: null, notified: [], clock: { mode: 'real' } });
+const sampleState = () => ({ version: 1, localUseVersion: 1, tasks: createSampleTasks(actualToday), selectedDate: actualToday, settings: { ...defaults }, history: [], notes: [], templates: [], lastActiveDate: actualToday, session: null, notified: [], clock: { mode: 'real' } });
 let state;
 let storageOK = true;
 let lastStoredRaw = null;
@@ -54,6 +54,10 @@ const inspected = inspectStorage({ storage: stateStorage, today: actualToday, de
 state = inspected.state;
 storageOK = inspected.storageOK;
 lastStoredRaw = inspected.raw;
+// Daily default: after a new day (or first upgrade), show today instead of a
+// stale day the user was viewing yesterday. Demo mode keeps its chosen date.
+state.selectedDate = dailyDate({ selectedDate: state.selectedDate, lastActiveDate: state.lastActiveDate, clockMode: state.clock?.mode, today: actualToday });
+if (state.clock?.mode !== 'demo') state.lastActiveDate = actualToday;
 if (inspected.loadIssue) {
   loadIssue = inspected.loadIssue;
   originalRaw = lastStoredRaw;
@@ -403,6 +407,7 @@ const clockView = createClockView({
 function updateClocks() { clockView.updateClocks(); }
 
 function openTask(id,template) {
+  if(!id&&state.clock?.mode!=='demo'&&state.selectedDate<dateKey(new Date()))setDate(dateKey(new Date()));
   const t=getTask(id);$('#task-form').reset();$('#form-error').textContent='';
   $('#task-id').value=t?.id||'';$('#task-title').value=t?.title||'';
   const start=suggestStartMinutes(dayTasks(),state.selectedDate,now().getTime());
@@ -570,7 +575,7 @@ $('#finish-extend').onclick=()=>{
   Object.assign(t,updated);closeDialog($('#finish-dialog'));persist();render();startTask(t);toast(savedNotice(`再给自己 10 分钟，计划 ${t.end} 结束。`));
 };
 
-function setDate(value) { if(!Number.isFinite(dateAtTime(value).getTime()))return;state.selectedDate=value;filter='all';$$('[data-filter]').forEach(b=>b.classList.toggle('active',b.dataset.filter===filter));persist();render(); }
+function setDate(value) { if(!Number.isFinite(dateAtTime(value).getTime()))return;state.selectedDate=value;state.lastActiveDate=dateKey(new Date());filter='all';$$('[data-filter]').forEach(b=>b.classList.toggle('active',b.dataset.filter===filter));persist();render(); }
 function moveDate(amount){const value=shiftDate(state.selectedDate,amount);if(value)setDate(value);}
 $('#prev-day').onclick=()=>moveDate(-1);$('#next-day').onclick=()=>moveDate(1);$('#day-picker').onchange=e=>setDate(e.target.value);
 $('#today-nav').onclick=()=>{const go=()=>{closeDialog($('#settings-dialog'));setDate(dateKey(now()));};if(hasUnsavedSettings())confirmAction('放弃未保存的设置？','有尚未保存的录音或改动，关闭后会丢失。',go);else go();};
@@ -587,7 +592,7 @@ $('#confirm-copy').onclick=()=>{
 };
 $('#demo-clock-settings').onclick=()=>showDialog('#clock-dialog');
 function changeClock(value) {
-  const change=()=>{stopSession();closeDialog($('#focus-dialog'));closeDialog($('#finish-dialog'));state.clock=value==='real'?{mode:'real'}:{mode:'demo',simulatedAt:dateAtTime(state.selectedDate,value).getTime(),anchor:Date.now()};state.selectedDate=dateKey(now());lastTick=now().getTime();closeDialog($('#clock-dialog'));persist();render();toast(savedNotice(value==='real'?'已切换到北京时间（GMT+8）。':`已来到 ${value}，体验这一段时间。`));};
+  const change=()=>{stopSession();closeDialog($('#focus-dialog'));closeDialog($('#finish-dialog'));state.clock=value==='real'?{mode:'real'}:{mode:'demo',simulatedAt:dateAtTime(state.selectedDate,value).getTime(),anchor:Date.now()};state.selectedDate=dateKey(now());state.lastActiveDate=dateKey(new Date());lastTick=now().getTime();closeDialog($('#clock-dialog'));persist();render();toast(savedNotice(value==='real'?'已切换到北京时间（GMT+8）。':`已来到 ${value}，体验这一段时间。`));};
   state.session?confirmAction('切换演示时间？','当前计时将结束，已记录的时间会保留。',change):change();
 }
 $$('[data-clock]').forEach(b=>b.onclick=()=>changeClock(b.dataset.clock));$('#use-real-time').onclick=()=>changeClock('real');
@@ -772,7 +777,8 @@ $('#backup-file').onchange = async event => {
       catch { toast('本机存储空间不足或不可用，恢复未完成，原数据已保留。'); return; }
       voicePlayer.stop();
       $$('dialog[open]').forEach(closeDialog);
-      state = restored; storageOK = true; writeBlocked = false; loadIssue = null;
+      state = restored;
+  state.lastActiveDate = dateKey(new Date()); storageOK = true; writeBlocked = false; loadIssue = null;
       fatalReported = false;
       hideRecoveryBanner();
       updateSaveState();refreshRecoveryCopyActions();
@@ -787,7 +793,21 @@ $('#backup-file').onchange = async event => {
 };
 $('#reset-demo').onclick=()=>{if(writeBlocked){toast('本机数据待恢复，请先处理首页的恢复提示。');return;}confirmAction('重新体验示例？','当前浏览器中的计划和专注记录会重置，家庭设置会保留。',()=>{const resetDate=dateKey(new Date());state.tasks=createSampleTasks(resetDate);state.history=[];state.notes=[];state.session=null;state.notified=[];state.selectedDate=resetDate;state.clock={mode:'demo',simulatedAt:dateAtTime(resetDate,"10:20").getTime(),anchor:Date.now()};lastTick=now().getTime();closeDialog($('#settings-dialog'));closeDialog($('#focus-dialog'));closeDialog($('#finish-dialog'));filter='all';$$('[data-filter]').forEach(b=>b.classList.toggle('active',b.dataset.filter==='all'));persist();render();toast(savedNotice('示例已就绪，开工！'));});};
 
+function syncToday() {
+  const today = dateKey(new Date());
+  if (state.clock?.mode === 'demo' || state.lastActiveDate === today) return false;
+  state.lastActiveDate = today;
+  state.selectedDate = today;
+  filter = 'all';
+  $$('[data-filter]').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
+  persist(); render();
+  toast('新的一天，安排已切换到今天。');
+  return true;
+}
+
 function tick({ silent = false } = {}) {
+  if (document.hidden || updateLocked) return;
+  if (syncToday()) return;
   if (document.hidden||updateLocked) return;
   const n=now(),at=n.getTime();
   let reminderVoice=null;
@@ -936,6 +956,7 @@ try {
   // Upgrade old demo installs once; an explicit later demo selection is retained.
   if (!state.localUseVersion) {
     if (state.clock.mode === 'demo') { stopSession(); state.clock = { mode: 'real' }; state.selectedDate = actualToday; }
+    state.lastActiveDate = actualToday;
     state.localUseVersion = 1;
   }
   lastTick=now().getTime();

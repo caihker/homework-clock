@@ -36,3 +36,9 @@ test('reusable plans and calendar export are exposed without a server', () => {
   assert.match(app, /function saveTemplate\(\)/);
   assert.match(app, /buildCalendar\(tasks/);
 });
+
+test('a new day opens on today while demo mode keeps its chosen date', () => {
+  assert.match(app, /dailyDate\(\{ selectedDate: state\.selectedDate/);
+  assert.match(app, /function syncToday\(\)/);
+  assert.match(app, /state\.selectedDate<dateKey\(new Date\(\)\)/);
+});

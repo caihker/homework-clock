@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   STATE_KEY, STATE_VERSION, RECOVERY_KEY, classifyStoredState, isStoredTaskValid,
-  normalizeStoredState, pruneNotified, chooseRecoveryExport, inspectStorage, isStoredTemplateValid,
+  normalizeStoredState, pruneNotified, chooseRecoveryExport, inspectStorage, isStoredTemplateValid, dailyDate,
 } from '../dist/store.mjs';
 
 const TODAY = '2026-11-02';
@@ -231,4 +231,13 @@ test('plan templates are normalized by id, title, type and 10–600 minute durat
 test('older snapshots default to an empty template list', () => {
   const { state } = normalize(snapshot());
   assert.deepEqual(state.templates, []);
+});
+
+test('dailyDate defaults to today only after the real-world day changes', () => {
+  const args = { selectedDate: '2026-11-01', lastActiveDate: '2026-11-01', clockMode: 'real', today: '2026-11-14' };
+  assert.equal(dailyDate(args), '2026-11-14');
+  assert.equal(dailyDate({ ...args, lastActiveDate: '2026-11-14' }), '2026-11-01');
+  assert.equal(dailyDate({ ...args, clockMode: 'demo' }), '2026-11-01');
+  assert.equal(dailyDate({ ...args, lastActiveDate: undefined }), '2026-11-14');
+  assert.equal(dailyDate({ ...args, today: '' }), '2026-11-01');
 });

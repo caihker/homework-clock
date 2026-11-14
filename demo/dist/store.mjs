@@ -111,6 +111,13 @@ export function normalizeStoredState(value, { defaults = {}, today } = {}) {
   };
 }
 
+/** On a new real-world day, default the schedule to today; demo dates are intentional. */
+export function dailyDate({ selectedDate, lastActiveDate, clockMode, today }) {
+  if (!today) return selectedDate;
+  if (clockMode === 'demo') return selectedDate;
+  return lastActiveDate === today ? selectedDate : today;
+}
+
 /** Reminder keys carry their GMT+8 day, so only today's keys need to be kept. */
 export function pruneNotified(notified, today) {
   if (typeof today !== 'string' || !today) return [];

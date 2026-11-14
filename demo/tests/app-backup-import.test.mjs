@@ -61,7 +61,7 @@ function setup() {
     normalizeCompanion, createUpdateGuard, hasSettingsDraft, commitLocalState,
     classifyStoredState: () => ({ status: 'ok' }), writeBlocked: false, updateSaveState: () => {}, hideRecoveryBanner: () => {}, refreshRecoveryCopyActions: () => {}, startTicking: () => {}, mascotView: { reset: () => {} },
     closeDialog: dialog => { if (dialog.open) dialog.close(); },
-    voicePlayer: { stop() {} }, persist: () => true, render() {}, now: () => new Date('2026-11-02T11:00:00+08:00'),
+    voicePlayer: { stop() {} }, persist: () => true, render() {}, now: () => new Date('2026-11-02T11:00:00+08:00'), dateKey: () => '2026-11-02',
     confirmAction: (title, message, callback) => { confirmations.push({ title, message, callback }); element('#confirm-dialog').open = true; },
   });
   vm.runInContext(`${handlers}\n${guard}\nglobalThis.guard=updateGuard;`, context);
