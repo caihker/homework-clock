@@ -1,0 +1,16 @@
+{
+  "project_id": "github-pages",
+  "commit_sha": "914fd6b59caee11246627510a88e25376fc47b97",
+  "deployment_id": 7785585566,
+  "status": "succeeded",
+  "url": "https://caihker.github.io/homework-clock/",
+  "published_at": "2026-11-14T09:25:11Z",
+  "audience": "public",
+  "offline_build": "1916a2f4b025fde08d72",
+  "verification": {
+    "tests": "273 passed, 0 failed, 0 skipped",
+    "browser": "desktop 1180x900 and iPad portrait 820x1180 screenshots with 4 plans and 4 notes; notes render inside the left current card at tablet sizes",
+    "deployment_service": "succeeded",
+    "workflow_run": "https://github.com/caihker/homework-clock/actions/runs/43580438665"
+  }
+}
