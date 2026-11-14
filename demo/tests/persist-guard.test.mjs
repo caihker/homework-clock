@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const source = await readFile(new URL('../dist/app.mjs', import.meta.url), 'utf8');
+const source = await readFile(new URL('../dist/app-controller.mjs', import.meta.url), 'utf8');
 
 /** Extract a named function body so regressions are caught structurally. */
 function functionBody(name) {

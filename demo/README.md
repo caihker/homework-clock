@@ -2,6 +2,8 @@
 
 保留漫画界面、最新科技运动扁平分类图标和小皮陪伴。打开时计时、播放提醒；切换 App 或锁屏后不承担提醒任务，回来后按真实时间刷新进度。时间、星期、计划截止和备份统一采用北京时间（GMT+8），不随设备时区改变。
 
+v1.5.4（阶段 4 收尾）：`app.mjs` 仅保留 3 行入口，逻辑移入 `app-controller.mjs`；新增 `clock-view`/`mascot-view` 的 15 项 fake-DOM 测试；CSS 字号/圆角/颜色/阴影 token 化（32 字号、14 圆角、8 颜色）。261 项自动检查通过。
+
 v1.5.3（阶段 4 第三批）：抽出 `dist/mascot-view.mjs`（陪伴形象、乌龟进度/调头、完成庆祝、动画回退）与 `dist/clock-view.mjs`（首页计时、专注页、专注时长统计）；`app.mjs` 约 910 行。246 项自动检查通过。
 
 v1.5.2（阶段 4 第二批）：抽出 `dist/dom.mjs` 与 `dist/timeline-view.mjs`，时间轴/记事渲染可独立测试；`notesForDate()` 收敛到 store；CSS 增加设置页青绿、离线状态、轨道与阴影 token。246 项自动检查通过。
@@ -107,7 +109,7 @@ v1.0.1 修复「下载到 58/73 项停止、重试一直加载」：将离线首
 
 ## 主要文件
 
-- `dist/app.mjs`：计划、计时、设置和备份 UI。
+- `dist/app.mjs`：3 行装配入口；`dist/app-controller.mjs`：状态、事件与启动逻辑。
 - `dist/schema.mjs`：状态版本、默认设置、任务类型标签与录音/备份/记事上限的单一来源。
 - `dist/dom.mjs`：DOM 查询、转义、SVG 图标与分类图标；`dist/timeline-view.mjs`：时间轴、现在标线与记事渲染。
 - `dist/mascot-view.mjs`：陪伴形象、乌龟进度/调头、完成庆祝与动画回退；`dist/clock-view.mjs`：首页计时、专注页与专注时长统计。

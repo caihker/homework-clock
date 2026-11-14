@@ -1,15 +1,15 @@
 .offline-panel { padding:14px 0 8px; }
-.offline-state { display:flex; align-items:center; gap:9px; margin:0 0 8px; font-size:18px; }
+.offline-state { display:flex; align-items:center; gap:9px; margin:0 0 8px; font-size: var(--font-18); }
 .offline-dot { width:11px; height:11px; flex:none; border:2px solid currentColor; border-radius:50%; background:var(--amber); }
 .offline-panel[data-state="ready"] .offline-dot { background:var(--green); }
 .offline-panel[data-state="error"] .offline-dot { background:var(--danger); }
-.offline-detail,.offline-update,.offline-install p { color:var(--muted); font-size:16px; line-height:1.65; margin:6px 0 10px; }
+.offline-detail,.offline-update,.offline-install p { color:var(--muted); font-size: var(--font-16); line-height:1.65; margin:6px 0 10px; }
 .offline-update { color:var(--ink); }
 .offline-panel button { min-height:44px; }
 .offline-panel button:disabled { opacity:.65; cursor:wait; }
-.offline-error-detail { margin:8px 0; font-size:15px; }
+.offline-error-detail { margin:8px 0; font-size: var(--font-15); }
 .offline-error-detail summary { cursor:pointer; min-height:44px; display:flex; align-items:center; }
 .offline-error-detail p { overflow-wrap:anywhere; color:var(--muted); line-height:1.6; }
 .offline-install { margin-top:10px; }
-.offline-install summary { cursor:pointer; width:fit-content; padding:9px 0; font-size:17px; }
+.offline-install summary { cursor:pointer; width:fit-content; padding:9px 0; font-size: var(--font-17); }
 @media (display-mode:standalone) { .offline-install { display:none; } }

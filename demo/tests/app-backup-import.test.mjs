@@ -8,7 +8,7 @@ import { normalizeCompanion } from '../dist/companion.mjs';
 import { createUpdateGuard, hasSettingsDraft } from '../dist/update-guard.mjs';
 import { commitLocalState } from '../dist/update-storage.mjs';
 
-const app = readFileSync(new URL('../dist/app.mjs', import.meta.url), 'utf8');
+const app = readFileSync(new URL('../dist/app-controller.mjs', import.meta.url), 'utf8');
 const handlers = app.slice(app.indexOf("$('#save-settings').onclick="), app.indexOf("$('#reset-demo').onclick="));
 const guard = app.slice(app.indexOf('const updateGuard=createUpdateGuard('), app.indexOf('if(navigator.serviceWorker)createUpdateSession('));
 const STORE = 'homework-clock-demo-v1';

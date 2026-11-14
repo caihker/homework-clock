@@ -29,7 +29,6 @@ export function createClockView({
     const ftProgress = getTask(getFocusTaskId());
     const focusFraction = taskProgress(ftProgress, state.session, at);
     mascotView.syncTurtleJourney($('#focus-journey'), ftProgress, focusFraction);
-    mascotView.updateMascots(at);
     $('#session-badge').textContent = !t ? '自由时刻' : t.completed ? '已完成' : active ? (state.session.paused ? '休息中' : '计时中') : taskEnd(t) <= at ? '待确认' : upcoming ? '即将开始' : '准备开始';
     let ms = state.history.filter(h => h.date === state.selectedDate && (h.type || getTask(h.taskId)?.type) === 'study').reduce((sum, h) => sum + h.ms, 0);
     if (state.session?.date === state.selectedDate && getTask(state.session.taskId)?.type === 'study') ms += sessionMs(at);

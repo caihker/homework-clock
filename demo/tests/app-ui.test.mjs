@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
-const app = await readFile(new URL('../dist/app.mjs', import.meta.url), 'utf8');
+const app = await readFile(new URL('../dist/app-controller.mjs', import.meta.url), 'utf8');
 const timelineView = await readFile(new URL('../dist/timeline-view.mjs', import.meta.url), 'utf8');
 
 test('the home page discloses foreground-only reminders and no app limits', () => {
