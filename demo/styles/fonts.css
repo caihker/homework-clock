@@ -13,8 +13,7 @@
   letter-spacing:.02em;
 }
 .task-name, .button, .text-button, .field, .type-field legend,
-.recording-card strong, .setting-row strong, .voice-pack-card strong,
-.schedule-more summary, .record-details > summary {
+.setting-row strong, .schedule-more summary {
   font-weight:700;
 }
 .task-name { letter-spacing:.01em; }

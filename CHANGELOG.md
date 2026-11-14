@@ -2,6 +2,13 @@
 
 采用 `主版本.功能版本.修复版本`，Git 标签使用 `v` 前缀。v1.2.4 是完整项目首次纳入 GitHub 管理的基线；更早版本保留原发布记录和验收文档，不为缺少完整快照的历史版本补造标签。
 
+## [1.5.1] - 2026-11-14
+
+- 阶段 4 第一批：新增 `schema.mjs` 统一默认设置、任务类型标签、状态版本与录音/备份/记事上限；`core`、`store`、`backup`、`scene-voice-settings`、`app` 共用。
+- 抽出 `store.inspectStorage()`：加载、空/损坏/未来版本/部分坏记录分类集中到可测试模块，`app.mjs` 只负责恢复副本与界面策略；新增 2 项集成测试。
+- CSS 清理：删除 `voice-pack.css` 与 `.recording-*`、`.record-details`、`.finish-symbol`、`.settings-pet-preview`、`.task-duration` 等无引用样式；补上未定义的 `--green` token；样式源 13 → 12。
+- 243 项自动检查通过；详见 [本轮验收](docs/verification-v1.5.1.md)。
+
 ## [1.5.0] - 2026-11-14
 
 - 时间选择器增加手动输入：保留 10 分钟档位，同时可在顶部直接输入 `HH:MM`（如 09:07）；校验 08:00–21:50 窗口，非法输入留在弹窗并提示。

@@ -15,7 +15,6 @@ export const STYLE_ORDER = Object.freeze([
   'styles.css',
   'time-picker.css',
   'session-controls.css',
-  'voice-pack.css',
   'ipad.css',
   'fonts.css',
   'category-icons.css',

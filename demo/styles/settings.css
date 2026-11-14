@@ -19,7 +19,6 @@ textarea.family-text-input { min-height:100px; resize:vertical; }
 .settings-panel .settings-note { font-size:15px; line-height:1.6; margin:10px 0; }
 .settings-panel .local-data-details { margin:0 0 12px; padding:0 0 12px; border-top:0; }
 .local-data-details h3 { font-size:20px; font-weight:700; }
-.settings-pet-preview { width:180px; height:180px; object-fit:contain; margin:24px auto; }
 .settings-save { justify-content:flex-end; margin-top:22px; padding-top:16px; border-top:1px solid var(--line); }
 .settings-version { margin-right:auto; color:var(--muted); font-size:15px; }
 .settings-reset { margin-top:8px; color:var(--muted); font-size:15px; }
@@ -35,7 +34,7 @@ textarea.family-text-input { min-height:100px; resize:vertical; }
 .homework-summary-values strong { font-size:28px; line-height:1.25; }
 .homework-summary-values span { color:var(--muted); font-size:16px; }
 .homework-summary-track { height:9px; overflow:hidden; background:#ebe7df; border-radius:6px; }
-.homework-summary-track > span { display:block; height:100%; width:0; background:var(--green,#97c6a1); border-radius:inherit; }
+.homework-summary-track > span { display:block; height:100%; width:0; background:var(--green); border-radius:inherit; }
 .homework-summary p { color:var(--muted); font-size:15px; margin-top:9px; line-height:1.4; }
 #settings-panel-pet > .setting-row { padding:10px 0; }
 #settings-panel-pet .companion-options { padding:12px 0; }

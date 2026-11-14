@@ -3,16 +3,14 @@ import { dateAtTime, dateKey, toMinutes, validateTask, TASK_TYPES } from './core
 import { sessionElapsedMs } from './session-timer.mjs';
 import { SCENES, normalizeSceneVoices } from './scene-voices.mjs';
 import { readEmbeddedAudio } from './audio-format.mjs';
+import { MAX_BACKUP_BYTES, MAX_RECORDING_BYTES, NOTE_MAX_LENGTH, DEFAULT_SETTINGS } from './schema.mjs';
 
-export const MAX_BACKUP_BYTES = 16 * 1024 * 1024;
-const MAX_RECORDING_BYTES = 1024 * 1024;
-const MAX_NOTE_LENGTH = 300;
+export { MAX_BACKUP_BYTES };
 const SCENE_KEYS = SCENES.map(scene => scene.key);
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_TIMESTAMP = Date.UTC(10000, 0, 1) - 1;
 const SCHEMA = 'homework-clock-backup';
 const TYPES = new Set(TASK_TYPES);
-const DEFAULT_SETTINGS = { sound: true, pet: true, code: '小皮开工了', message: '先做一道，进入状态就容易啦。', voice: null };
 
 function fail(message = '备份内容不完整或格式不正确，请选择作业时钟导出的文件。') {
   throw new Error(message);
@@ -183,7 +181,7 @@ function notes(value) {
   const ids = new Set();
   return list(value, 2000).map(note => {
     record(note, ['id', 'date', 'text']);
-    const clean = { id: text(note.id, 200), date: calendarDate(note.date), text: text(note.text, MAX_NOTE_LENGTH) };
+    const clean = { id: text(note.id, 200), date: calendarDate(note.date), text: text(note.text, NOTE_MAX_LENGTH) };
     if (ids.has(clean.id)) fail('备份中有重复记事，未恢复任何数据。');
     ids.add(clean.id);
     return clean;

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   STATE_KEY, STATE_VERSION, RECOVERY_KEY, classifyStoredState, isStoredTaskValid,
-  normalizeStoredState, pruneNotified, chooseRecoveryExport,
+  normalizeStoredState, pruneNotified, chooseRecoveryExport, inspectStorage,
 } from '../dist/store.mjs';
 
 const TODAY = '2026-11-02';
@@ -169,4 +169,47 @@ test('notes default to an empty list for older snapshots', () => {
   const { state, droppedNotes } = normalize(snapshot());
   assert.deepEqual(state.notes, []);
   assert.equal(droppedNotes, 0);
+});
+
+const memoryStorage = (value, { failGet = false } = {}) => ({
+  getItem() { if (failGet) throw new Error('blocked'); return value; },
+});
+
+test('inspectStorage separates empty, corrupt, future and partial snapshots', () => {
+  const sample = () => ({ version: 1, tasks: [], notes: [], settings: { ...defaults } });
+  const inspect = raw => inspectStorage({ storage: memoryStorage(raw), today: TODAY, defaults, createSampleState: sample });
+
+  assert.equal(inspect(null).status, 'empty');
+  assert.deepEqual(inspect(null).state, sample());
+
+  const corrupt = inspect('{oops');
+  assert.equal(corrupt.status, 'invalid');
+  assert.equal(corrupt.loadIssue.reason, 'json');
+  assert.deepEqual(corrupt.state, sample());
+
+  const future = inspect(JSON.stringify(snapshot({ version: 2 })));
+  assert.equal(future.status, 'future');
+  assert.equal(future.loadIssue.status, 'future');
+
+  const partial = inspect(JSON.stringify(snapshot({
+    tasks: [task(), task({ id: 'broken', start: 'bad' })],
+    notes: [{ id: 'n', date: TODAY, text: 'ok' }, { id: 'bad', date: TODAY, text: '' }],
+  })));
+  assert.equal(partial.loadIssue.status, 'partial');
+  assert.equal(partial.loadIssue.dropped, 2);
+  assert.equal(partial.state.notes.length, 1);
+});
+
+test('inspectStorage keeps a complete snapshot and reports unavailable storage', () => {
+  const raw = JSON.stringify(snapshot({ notes: [{ id: 'n', date: TODAY, text: '带卷子' }] }));
+  const ok = inspectStorage({ storage: memoryStorage(raw), today: TODAY, defaults, createSampleState: () => snapshot() });
+  assert.equal(ok.status, 'ok');
+  assert.equal(ok.raw, raw);
+  assert.equal(ok.loadIssue, null);
+  assert.equal(ok.state.notes[0].text, '带卷子');
+
+  const blocked = inspectStorage({ storage: memoryStorage(null, { failGet: true }), today: TODAY, defaults, createSampleState: () => snapshot() });
+  assert.equal(blocked.storageOK, false);
+  assert.equal(blocked.status, 'empty');
+  assert.equal(blocked.loadIssue, null);
 });

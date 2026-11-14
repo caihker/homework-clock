@@ -1,8 +1,7 @@
 import { SCENES, normalizeSceneVoices } from './scene-voices.mjs';
 import { TURTLE_LINES } from './voice-pack.mjs';
 import { normalizeRecordingMime } from './audio-format.mjs';
-
-const MAX_RECORDING_BYTES = 1024 * 1024;
+import { MAX_RECORDING_BYTES } from './schema.mjs';
 const RECORDING_MS = 8000;
 const PROCESSING_MS = 10000;
 const sceneFor = key => SCENES.find(scene => scene.key === key);

@@ -14,7 +14,8 @@ import { collectDueReminders } from './reminder-events.mjs';
 import { createUpdateGuard, hasSettingsDraft } from './update-guard.mjs';
 import { createUpdateSession } from './update-session.mjs';
 import { commitLocalState, readUpdateLock, releaseUpdateLock } from './update-storage.mjs';
-import { STATE_KEY, RECOVERY_KEY, classifyStoredState, normalizeStoredState, pruneNotified, chooseRecoveryExport } from './store.mjs';
+import { STATE_KEY, RECOVERY_KEY, classifyStoredState, normalizeStoredState, pruneNotified, chooseRecoveryExport, inspectStorage } from './store.mjs';
+import { TASK_TYPE_LABELS, DEFAULT_SETTINGS } from './schema.mjs';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -23,7 +24,7 @@ const UPDATE_LOCK = 'homework-clock-update-lock-v1';
 // Defer the storage getter until a guarded helper calls it: Safari may deny
 // even accessing localStorage, rather than only failing a write.
 const stateStorage={getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value),removeItem:key=>localStorage.removeItem(key)};
-const TYPES = { study: '学习', life: '生活', play: '娱乐' };
+const TYPES = TASK_TYPE_LABELS;
 const CATEGORY_ICONS = { study:'learning', life:'life', play:'play' };
 const categoryIcon = type => `<img class="category-icon" src="./assets/category-flat-byg/${CATEGORY_ICONS[type] || CATEGORY_ICONS.study}.png" width="64" height="64" alt="" aria-hidden="true" decoding="async" draggable="false">`;
 const paths = {
@@ -57,7 +58,7 @@ const escape = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&
 const setIcons = () => $$('[data-icon]').forEach(el => { el.innerHTML = icon(el.dataset.icon); });
 const setCategoryIcons = () => $$('[data-category]').forEach(el => { el.innerHTML = categoryIcon(el.dataset.category); });
 const timePicker = setupTimePicker();
-const defaults = { sound: true, pet: true, companion: 'original', code: '小皮开工了', message: '先做一道，进入状态就容易啦。', voice: null };
+const defaults = DEFAULT_SETTINGS;
 const actualToday = dateKey(new Date());
 const sampleState = () => ({ version: 1, localUseVersion: 1, tasks: createSampleTasks(actualToday), selectedDate: actualToday, settings: { ...defaults }, history: [], notes: [], session: null, notified: [], clock: { mode: 'real' } });
 let state;
@@ -77,32 +78,25 @@ let updateTransaction;
 let saveFailure;
 let importingBackup = false;
 let composingInput = false;
-try {
-  lastStoredRaw = localStorage.getItem(STORE);
-} catch { storageOK = false; }
-const stored = storageOK ? classifyStoredState(lastStoredRaw) : { status: 'empty' };
-if (stored.status === 'ok') {
-  const normalized = normalizeStoredState(stored.value, { defaults, today: actualToday });
-  state = normalized.state;
-  if (normalized.droppedTasks || normalized.droppedHistory || normalized.droppedNotes) {
-    originalRaw = lastStoredRaw;
-    loadIssue = { status: 'partial', dropped: normalized.droppedTasks + normalized.droppedHistory + normalized.droppedNotes, preserved: false };
+const inspected = inspectStorage({ storage: stateStorage, today: actualToday, defaults, createSampleState: sampleState });
+state = inspected.state;
+storageOK = inspected.storageOK;
+lastStoredRaw = inspected.raw;
+if (inspected.loadIssue) {
+  loadIssue = inspected.loadIssue;
+  originalRaw = lastStoredRaw;
+  if (loadIssue.status === 'partial') {
     recoveryRaw = preserveRecovery(lastStoredRaw);
     if (recoveryRaw) loadIssue.preserved = true;
     // If the copy cannot be written, keep the original bytes safe by refusing
     // to overwrite them with the normalized result.
     else writeBlocked = true;
+  } else {
+    // Never overwrite bytes this version cannot read: keep a recovery copy and
+    // stop automatic saves until the user exports, restores or resets.
+    writeBlocked = true;
+    recoveryRaw = preserveRecovery(lastStoredRaw);
   }
-} else if (stored.status === 'empty') {
-  state = sampleState();
-} else {
-  // Never overwrite bytes this version cannot read: keep a recovery copy and
-  // stop automatic saves until the user exports, restores or resets.
-  writeBlocked = true;
-  originalRaw = lastStoredRaw;
-  loadIssue = { status: stored.status === 'future' ? 'future' : 'invalid', version: stored.version, reason: stored.reason };
-  recoveryRaw = preserveRecovery(lastStoredRaw);
-  state = sampleState();
 }
 state.notes ||= [];
 let filter = 'all';

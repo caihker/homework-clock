@@ -2,12 +2,9 @@
 import { dateAtTime, TASK_TYPES, validateTask } from './core.mjs';
 import { normalizeCompanion } from './companion.mjs';
 import { normalizeSceneVoices } from './scene-voices.mjs';
+import { STATE_KEY, STATE_VERSION, RECOVERY_KEY, NOTE_MAX_LENGTH } from './schema.mjs';
 
-export const STATE_KEY = 'homework-clock-demo-v1';
-export const STATE_VERSION = 1;
-/** The last unreadable snapshot is kept here so it can still be exported. */
-export const RECOVERY_KEY = 'homework-clock-demo-v1-recovery';
-export const NOTE_MAX_LENGTH = 300;
+export { STATE_KEY, STATE_VERSION, RECOVERY_KEY, NOTE_MAX_LENGTH };
 
 const types = new Set(TASK_TYPES);
 const record = value => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -116,4 +113,32 @@ export function chooseRecoveryExport({ recoveryRaw = null, originalRaw = null, s
   }
   if (typeof serializedState === 'string' && serializedState.length > 0) return { text: serializedState, kind: 'current' };
   return null;
+}
+
+/**
+ * Read and normalize the single snapshot without owning recovery-UI policy.
+ * Returns the raw bytes so the caller can preserve them before any write.
+ */
+export function inspectStorage({ storage, key = STATE_KEY, today, defaults = {}, createSampleState }) {
+  if (typeof createSampleState !== 'function') throw new TypeError('inspectStorage needs createSampleState');
+  let raw = null;
+  let storageOK = true;
+  try { raw = storage.getItem(key); } catch { storageOK = false; }
+  if (!storageOK) return { status: 'empty', storageOK: false, raw, state: createSampleState(), loadIssue: null };
+  const stored = classifyStoredState(raw);
+  if (stored.status === 'ok') {
+    const normalized = normalizeStoredState(stored.value, { defaults, today });
+    const dropped = normalized.droppedTasks + normalized.droppedHistory + normalized.droppedNotes;
+    return {
+      status: 'ok', storageOK: true, raw, state: normalized.state,
+      loadIssue: dropped ? { status: 'partial', dropped, preserved: false } : null,
+    };
+  }
+  if (stored.status === 'empty') {
+    return { status: 'empty', storageOK: true, raw, state: createSampleState(), loadIssue: null };
+  }
+  return {
+    status: stored.status, storageOK: true, raw, state: createSampleState(),
+    loadIssue: { status: stored.status === 'future' ? 'future' : 'invalid', version: stored.version, reason: stored.reason },
+  };
 }

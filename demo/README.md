@@ -2,6 +2,8 @@
 
 保留漫画界面、最新科技运动扁平分类图标和小皮陪伴。打开时计时、播放提醒；切换 App 或锁屏后不承担提醒任务，回来后按真实时间刷新进度。时间、星期、计划截止和备份统一采用北京时间（GMT+8），不随设备时区改变。
 
+v1.5.1（阶段 4 第一批）：新增 `dist/schema.mjs` 统一默认设置、类型标签与上限常量；加载逻辑抽到 `store.inspectStorage()`；删除无引用样式并修正 `--green` 变量；样式源 13 → 12。243 项自动检查通过。
+
 v1.5.0：时间选择保留十分钟档位，同时支持在顶部直接输入 `HH:MM`，按 08:00–21:50 校验；新增「记事」，可给当天添加不带时间段的文字（最多 300 字），支持编辑删除，并包含在本机保存与备份中。240 项自动检查通过。
 
 v1.4.0（阶段 3）：首页当前卡片新增「下一项」与倒计时，时间轴标记下一项并加「现在 HH:mm」标线；作业统计合并到时间轴末尾「今日回顾」；首页常驻「仅前台提醒 · 不限制其他 App」能力披露；关闭设置前确认未保存草稿；演示时间入口移入设置；任务编辑支持提前/延后 10 分钟与复制到明天；补齐弹窗标签、筛选状态、计时器角色与静音图标等无障碍细节。232 项自动检查通过。
@@ -102,13 +104,14 @@ v1.0.1 修复「下载到 58/73 项停止、重试一直加载」：将离线首
 ## 主要文件
 
 - `dist/app.mjs`：计划、计时、设置和备份 UI。
+- `dist/schema.mjs`：状态版本、默认设置、任务类型标签与录音/备份/记事上限的单一来源。
 - `dist/store.mjs`：本机数据解析、版本识别、归一化与恢复副本键；`tests/store.test.mjs` 覆盖损坏、未来版本与部分损坏。
 - `dist/plan-view.mjs`：统一进度、新计划时间建议、多日倒计时；`reminder-events.mjs`：前台提醒事件与去重。
 - `dist/scene-voices.mjs`：七种状态与录音迁移、选择；`scene-voice-settings.mjs` 和 CSS：录音草稿、试听及恢复默认。
 - `dist/audio-format.mjs`：录音 MIME 和内嵌音频统一解析，兼容 Safari 格式标记。
 - `dist/backup.mjs`：备份格式校验、快照和恢复；`tests/backup.test.mjs` 验证无损往返及错误文件拒绝。
 - `dist/pwa.mjs`、`styles/pwa.css`：设置内离线状态、重试和主屏说明。
-- `styles/`：13 个 CSS 源文件；`scripts/build-css.mjs` 按固定顺序合并为 `dist/site.css`，`npm run check` 校验是否过期。
+- `styles/`：12 个 CSS 源文件；`scripts/build-css.mjs` 按固定顺序合并为 `dist/site.css`，`npm run check` 校验是否过期。
 - `dist/offline-client.mjs`：安装状态、超时、重新注册、失败重试及更新协调。
 - `dist/update-guard.mjs`、`update-session.mjs`、`update-storage.mjs`：更新前草稿检查、窗口冻结/保存/重开、存储冲突和新窗口启动屏障。
 - `dist/manifest.webmanifest`、`assets/pwa/`：主屏配置与图标。
