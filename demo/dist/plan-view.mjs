@@ -1,4 +1,4 @@
-import { clockParts, dateAtTime, dateKey, durationMinutes, toMinutes, toTime } from './core.mjs';
+import { clockParts, dateAtTime, dateKey, durationMinutes, toMinutes, toTime, shiftDate } from './core.mjs';
 import { normalizeSession, sessionRemainingMs } from './session-timer.mjs';
 import { MIN_PICKER_MINUTES, MAX_START_MINUTES, MAX_PICKER_MINUTES } from './time-picker.mjs';
 
@@ -90,4 +90,17 @@ export function slotFromDuration(start, duration, { minStart = MIN_PICKER_MINUTE
   const end = Math.min(maxEnd, from + duration);
   if (end <= from) return null;
   return { start: toTime(from), end: toTime(end) };
+}
+
+/** Same weekday, one instance per week, starting with the selected day. */
+export function weeklyDates(startDate, weeks) {
+  if (!Number.isInteger(weeks) || weeks < 1 || weeks > 52) return [];
+  if (!Number.isFinite(dateAtTime(startDate).getTime())) return [];
+  const dates = [];
+  for (let index = 0; index < weeks; index += 1) {
+    const date = shiftDate(startDate, index * 7);
+    if (!date) return [];
+    dates.push(date);
+  }
+  return dates;
 }

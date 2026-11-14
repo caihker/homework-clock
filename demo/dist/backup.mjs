@@ -97,7 +97,7 @@ function tasks(value) {
   const ids = new Set();
   const days = new Map();
   const result = list(value, 20000).map(task => {
-    record(task, ['id', 'date', 'title', 'start', 'end', 'type', 'subject', 'completed']);
+    record(task, ['id', 'date', 'title', 'start', 'end', 'type', 'subject', 'completed', 'seriesId']);
     const clean = {
       id: text(task.id, 200),
       date: calendarDate(task.date),
@@ -108,6 +108,7 @@ function tasks(value) {
       subject: task.subject === undefined ? '' : text(task.subject, 60, { empty: true }),
       completed: task.completed === undefined ? false : boolean(task.completed),
     };
+    if (task.seriesId !== undefined) clean.seriesId = text(task.seriesId, 200);
     if (!TYPES.has(clean.type) || validateTask(clean, [])) fail('备份中的安排内容或起止时间不正确。');
     if (ids.has(clean.id)) fail('备份中有重复安排，未恢复任何数据。');
     ids.add(clean.id);

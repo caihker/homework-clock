@@ -363,3 +363,10 @@ test('benign unknown metadata is ignored, while prototype keys are still rejecte
   assert.throws(() => parseBackup(proto));
   assert.equal({}.polluted, undefined);
 });
+
+test('weekly series metadata survives a backup round trip', () => {
+  const original = fixture();
+  original.tasks[0].seriesId = 'series-a';
+  const restored = parseBackup(createBackup(original, at(11)));
+  assert.equal(restored.tasks[0].seriesId, 'series-a');
+});

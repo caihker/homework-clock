@@ -7,7 +7,7 @@ import { TURTLE_LINES, createVoicePlayer } from './voice-pack.mjs?v=1';
 import { createBackup, parseBackup, MAX_BACKUP_BYTES } from './backup.mjs';
 import { selectSceneVoice, countSceneVoices } from './scene-voices.mjs';
 import { createSceneVoiceSettings } from './scene-voice-settings.mjs';
-import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, shiftSlot, slotFromDuration } from './plan-view.mjs';
+import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, shiftSlot, slotFromDuration, weeklyDates } from './plan-view.mjs';
 import { collectDueReminders } from './reminder-events.mjs';
 import { createUpdateGuard, hasSettingsDraft } from './update-guard.mjs';
 import { createUpdateSession } from './update-session.mjs';
@@ -416,6 +416,10 @@ function openTask(id,template) {
   $('#task-start').value=t?.start||toTime(start);$('#task-end').value=t?.end||toTime(Math.min(start+30,MAX_PICKER_MINUTES));
   timePicker.sync();
   $(`input[name="task-type"][value="${t?.type||'study'}"]`).checked=true;
+  $('#repeat-row').hidden=!!t;
+  $('#repeat-weekly').checked=false;
+  $('#repeat-hint').hidden=!t?.seriesId;
+  if(t?.seriesId)$('#repeat-hint').textContent='这是每周重复中的一次；保存或删除只影响这一次。';
   $('#task-dialog-title').textContent=t?'编辑安排':'添加安排';$('#delete-task').hidden=!t;
   renderCustomTemplates();showDialog('#task-dialog');if(template)applyTemplate(template);
 }
@@ -458,14 +462,40 @@ function saveTemplate(){
   persist();renderCustomTemplates();toast(savedNotice('已存为常用计划。'));
 }
 
+function windowError(task){
+  if(!isWithinSchedulingWindow(task.start,{maxMinutes:MAX_START_MINUTES}))return '开始时间请选择 08:00–21:00。';
+  if(!isWithinSchedulingWindow(task.end))return '结束时间请选择 08:00–21:50。';
+  return '';
+}
 $('#task-form').onsubmit=e=>{
   e.preventDefault();const old=getTask($('#task-id').value);
   const title=$('#task-title').value.trim(),type=$('input[name="task-type"]:checked').value;
   const task={...old,id:old?.id||crypto.randomUUID(),date:old?.date||taskEditingDate||state.selectedDate,title,start:$('#task-start').value,end:$('#task-end').value,type,subject:type==='study'?(title.includes('语文')?'语文':/数学|AMC/i.test(title)?'数学':title.includes('英语')?'英语':title.includes('科学')?'科学':''):'',completed:old?.completed||false};
   const error=validateTask(task,state.tasks);if(error){$('#form-error').textContent=error;return;}
   if(!old||old.start!==task.start||old.end!==task.end){
-    if(!isWithinSchedulingWindow(task.start,{maxMinutes:MAX_START_MINUTES})){$('#form-error').textContent='开始时间请选择 08:00–21:00。';return;}
-    if(!isWithinSchedulingWindow(task.end)){$('#form-error').textContent='结束时间请选择 08:00–21:50。';return;}
+    const windowIssue=windowError(task);
+    if(windowIssue){$('#form-error').textContent=windowIssue;return;}
+  }
+  const repeatWeeks=!old&&$('#repeat-weekly').checked?Number($('#repeat-weeks').value):0;
+  if(repeatWeeks){
+    const dates=weeklyDates(task.date,repeatWeeks);
+    if(dates.length!==repeatWeeks){$('#form-error').textContent='无法生成重复日期，请检查开始日期。';return;}
+    const seriesId=crypto.randomUUID();
+    const instances=dates.map(date=>({...task,id:crypto.randomUUID(),date,seriesId,completed:false}));
+    const trial=[...state.tasks];
+    for(const instance of instances){
+      const error=validateTask(instance,trial);
+      if(error){$('#form-error').textContent=`${instance.date}：${error}`;return;}
+      if(!isWithinSchedulingWindow(instance.start,{maxMinutes:MAX_START_MINUTES})||!isWithinSchedulingWindow(instance.end)){
+        $('#form-error').textContent=`${instance.date} 的时间不在可选范围内。`;return;
+      }
+      trial.push(instance);
+    }
+    if(state.session?.taskId===task.id)stopSession();
+    state.tasks.push(...instances);
+    persist();closeDialog($('#task-dialog'));render();
+    toast(savedNotice(storageOK?`已安排未来 ${repeatWeeks} 周，共 ${repeatWeeks} 次。`:'当前更改暂未保存，请检查浏览器存储。'));
+    return;
   }
   if(state.session?.taskId===task.id&&(old.start!==task.start||old.end!==task.end||old.type!==task.type))stopSession();
   if(old)state.tasks=state.tasks.map(t=>t.id===old.id?task:t);else state.tasks.push(task);
@@ -473,7 +503,7 @@ $('#task-form').onsubmit=e=>{
 };
 $('#delete-task').onclick=()=>{
   const t=getTask($('#task-id').value);if(!t)return;
-  confirmAction('删除这项安排？',`“${t.title}”将从这一天移除，其他安排保持原时间。`,()=>{
+  confirmAction('删除这项安排？',t.seriesId?`“${t.title}”是每周重复中的一次，只删除这一天，其他重复保留。`:`“${t.title}”将从这一天移除，其他安排保持原时间。`,()=>{
     if(state.session?.taskId===t.id)stopSession();state.tasks=state.tasks.filter(x=>x.id!==t.id);persist();closeDialog($('#task-dialog'));render();
     toast(savedNotice('安排已删除。'),()=>{if(validateTask(t,state.tasks)){toast('原时间已有其他安排，请重新添加。');return;}state.tasks.push(t);persist();render();});
   });
@@ -498,7 +528,8 @@ $('#task-copy').onclick=()=>{
   const title=$('#task-title').value.trim();
   if(!title){setTaskFormError('先给这项安排起个名字吧。');return;}
   const original=getTask($('#task-id').value);
-  const copy={...(original||{}),id:crypto.randomUUID(),date:shiftDate(state.selectedDate,1),title,start:$('#task-start').value,end:$('#task-end').value,type:$('input[name="task-type"]:checked')?.value||'study',completed:false};
+  const {seriesId:ignoredSeries,...originalRest}=original||{};
+  const copy={...originalRest,id:crypto.randomUUID(),date:shiftDate(state.selectedDate,1),title,start:$('#task-start').value,end:$('#task-end').value,type:$('input[name="task-type"]:checked')?.value||'study',completed:false};
   const error=validateTask(copy,state.tasks);
   if(error){setTaskFormError('复制到明天会有冲突，请先调整时间。');return;}
   state.tasks.push(copy);persist();closeDialog($('#task-dialog'));render();toast(savedNotice('已复制到明天。'));
@@ -602,7 +633,7 @@ $('#copy-day').onclick=()=>{$('#copy-date').value=shiftDate(state.selectedDate,1
 $('#confirm-copy').onclick=()=>{
   const date=$('#copy-date').value;if(!date){$('#copy-error').textContent='请选择要复制到的日期。';return;}
   if(date===state.selectedDate){$('#copy-error').textContent='请选择另一天，避免重复安排。';return;}
-  const copies=dayTasks().map(t=>({...t,id:crypto.randomUUID(),date,completed:false}));
+  const copies=dayTasks().map(t=>{const {seriesId,...rest}=t;return {...rest,id:crypto.randomUUID(),date,completed:false};});
   for(const t of copies){const error=validateTask(t,state.tasks);if(error){$('#copy-error').textContent=`${date} 已有时间冲突，请换一天或先调整安排。`;return;}}
   state.tasks.push(...copies);
   const existingNotes=new Set((state.notes||[]).filter(note=>note.date===date).map(note=>note.text));

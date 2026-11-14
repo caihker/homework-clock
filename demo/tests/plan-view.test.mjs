@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { dateAtTime } from '../dist/core.mjs';
 import { createSession, pauseSession, resumeSession } from '../dist/session-timer.mjs';
-import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, nowMarkerIndex, shiftSlot, slotFromDuration } from '../dist/plan-view.mjs';
+import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, nowMarkerIndex, shiftSlot, slotFromDuration, weeklyDates } from '../dist/plan-view.mjs';
 
 const task = { id: 'math', date: '2026-11-01', title: '数学试卷', start: '10:00', end: '12:00', type: 'study' };
 const at = time => dateAtTime(task.date, time).getTime();
@@ -117,4 +117,13 @@ test('template durations keep the chosen start and clamp to the last end slot', 
   assert.equal(slotFromDuration('21:10', 60), null);
   assert.equal(slotFromDuration('10:00', 5), null);
   assert.equal(slotFromDuration('bad', 60), null);
+});
+
+test('weeklyDates keeps the same weekday for the requested number of weeks', () => {
+  assert.deepEqual(weeklyDates('2026-11-02', 4), ['2026-11-02', '2026-11-09', '2026-11-16', '2026-11-23']);
+  assert.equal(weeklyDates('2026-11-02', 8).length, 8);
+  assert.deepEqual(weeklyDates('2026-11-02', 1), ['2026-11-02']);
+  assert.deepEqual(weeklyDates('2026-02-30', 4), []);
+  assert.deepEqual(weeklyDates('2026-11-02', 0), []);
+  assert.deepEqual(weeklyDates('2026-11-02', 53), []);
 });

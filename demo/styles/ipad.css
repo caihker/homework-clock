@@ -40,6 +40,10 @@
   .pet-card { min-height:84px; padding-top:24px; justify-content:center; }
   .notes-panel { padding-top:18px; }
   .notes-heading h3 { font-size:var(--tablet-body); }
+  .repeat-row { font-size:var(--tablet-body); gap:14px; }
+  .repeat-toggle input { width:24px; height:24px; }
+  .repeat-row select { min-height:48px; font-size:var(--tablet-body); }
+  .repeat-hint { font-size:var(--tablet-small); }
   .turtle-words { margin-top:18px; padding:14px 16px; }
   .turtle-words-heading h3 { font-size:var(--tablet-body); gap:8px; }
   .turtle-words-heading h3 svg.icon { width:20px; height:20px; }
