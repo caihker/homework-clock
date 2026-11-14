@@ -62,3 +62,13 @@ test('turtle sayings sit under notes inside the current card and can refresh', (
   assert.match(app, /pickTurtleWord\(currentTurtleWord\)/);
   assert.match(app, /\$\('#next-turtle-word'\)\.onclick=renderTurtleWords/);
 });
+
+test('audit fixes guard note drafts, keep edit dates and preserve active timers', () => {
+  assert.match(app, /'#note-dialog'\].some/);
+  assert.match(app, /let taskEditingDate = null;/);
+  assert.match(app, /let noteEditingDate = null;/);
+  assert.match(app, /date:old\?\.date\|\|taskEditingDate\|\|state\.selectedDate/);
+  assert.match(app, /当前还有计时进行中，请先结束或暂停计时，再恢复备份/);
+  assert.match(app, /normalized\.droppedNotes\+normalized\.droppedTemplates/);
+  assert.match(app, /taskEnd\(t\)<=now\(\)\.getTime\(\)\)\{openFinish\(t\);return;\}/);
+});

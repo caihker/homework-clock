@@ -326,3 +326,40 @@ test('invalid or duplicate plan templates reject the whole backup', () => {
     assert.throws(() => createBackup(original), /备份/);
   }
 });
+
+test('live state with lastActiveDate exports and restores without losing metadata', () => {
+  const original = fixture();
+  original.lastActiveDate = '2026-11-01';
+  const restored = parseBackup(createBackup(original, at(11)));
+  assert.equal(restored.lastActiveDate, '2026-11-01');
+  assert.equal(restored.history[0].ms, original.history[0].ms);
+  assert.equal(restored.settings.code, original.settings.code);
+});
+
+test('an invalid lastActiveDate is rejected with the rest of the file', () => {
+  const original = fixture();
+  original.lastActiveDate = '2026-02-30';
+  assert.throws(() => createBackup(original), /日期/);
+});
+
+test('legacy ms-only history is repaired instead of blocking the whole backup', () => {
+  const original = fixture();
+  original.history = [{ ms: 1000 }];
+  const restored = parseBackup(createBackup(original, at(11)));
+  assert.equal(restored.history.length, 1);
+  assert.equal(restored.history[0].ms, 1000);
+  assert.equal(restored.history[0].taskId, 'legacy');
+  assert.equal(restored.history[0].date, original.selectedDate);
+});
+
+test('benign unknown metadata is ignored, while prototype keys are still rejected', () => {
+  const original = fixture();
+  original.lastActiveDate = '2026-11-01';
+  original.futureField = { hello: 'world' };
+  const restored = parseBackup(createBackup(original, at(11)));
+  assert.equal(restored.lastActiveDate, '2026-11-01');
+  assert.equal('futureField' in restored, false);
+  const proto = JSON.stringify(fixture()).replace('"version":1', '"version":1,"__proto__":{"polluted":true}');
+  assert.throws(() => parseBackup(proto));
+  assert.equal({}.polluted, undefined);
+});

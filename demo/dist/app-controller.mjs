@@ -409,6 +409,7 @@ function updateClocks() { clockView.updateClocks(); }
 
 function openTask(id,template) {
   if(!id&&state.clock?.mode!=='demo'&&state.selectedDate<dateKey(new Date()))setDate(dateKey(new Date()));
+  taskEditingDate=state.selectedDate;
   const t=getTask(id);$('#task-form').reset();$('#form-error').textContent='';
   $('#task-id').value=t?.id||'';$('#task-title').value=t?.title||'';
   const start=suggestStartMinutes(dayTasks(),state.selectedDate,now().getTime());
@@ -423,6 +424,8 @@ function applyTemplate(key) { if(!Object.hasOwn(templates,key))return;const t=te
 
 function currentTemplateDuration(){const start=toMinutes($('#task-start').value),end=toMinutes($('#task-end').value);return Number.isFinite(start)&&Number.isFinite(end)&&end>start?end-start:0;}
 let currentTurtleWord = '';
+let taskEditingDate = null;
+let noteEditingDate = null;
 function renderTurtleWords(){
   const el = $('#turtle-words-text'); if (!el) return;
   currentTurtleWord = pickTurtleWord(currentTurtleWord);
@@ -458,7 +461,7 @@ function saveTemplate(){
 $('#task-form').onsubmit=e=>{
   e.preventDefault();const old=getTask($('#task-id').value);
   const title=$('#task-title').value.trim(),type=$('input[name="task-type"]:checked').value;
-  const task={...old,id:old?.id||crypto.randomUUID(),date:state.selectedDate,title,start:$('#task-start').value,end:$('#task-end').value,type,subject:type==='study'?(title.includes('语文')?'语文':/数学|AMC/i.test(title)?'数学':title.includes('英语')?'英语':title.includes('科学')?'科学':''):'',completed:old?.completed||false};
+  const task={...old,id:old?.id||crypto.randomUUID(),date:old?.date||taskEditingDate||state.selectedDate,title,start:$('#task-start').value,end:$('#task-end').value,type,subject:type==='study'?(title.includes('语文')?'语文':/数学|AMC/i.test(title)?'数学':title.includes('英语')?'英语':title.includes('科学')?'科学':''):'',completed:old?.completed||false};
   const error=validateTask(task,state.tasks);if(error){$('#form-error').textContent=error;return;}
   if(!old||old.start!==task.start||old.end!==task.end){
     if(!isWithinSchedulingWindow(task.start,{maxMinutes:MAX_START_MINUTES})){$('#form-error').textContent='开始时间请选择 08:00–21:00。';return;}
@@ -509,6 +512,7 @@ $('#timeline').onclick=e=>{
 };
 function dayNotes(){return notesForDate(state.notes,state.selectedDate);}
 function openNote(id){
+  noteEditingDate=state.selectedDate;
   const note=(state.notes||[]).find(item=>item.id===id);
   $('#note-id').value=note?.id||'';
   $('#note-text').value=note?.text||'';
@@ -529,9 +533,12 @@ function saveNote(){
   if(!text){$('#note-error').textContent='写点什么再保存吧。';return;}
   if(text.length>300){$('#note-error').textContent='记事最多 300 个字。';return;}
   const id=$('#note-id').value;
-  if(id)state.notes=(state.notes||[]).map(note=>note.id===id?{...note,text}:note);
-  else state.notes=[...(state.notes||[]),{id:crypto.randomUUID(),date:state.selectedDate,text}];
-  persist();closeDialog($('#note-dialog'));render();toast(savedNotice(id?'记事已更新。':'记事已保存。'));
+  const existing=id&&(state.notes||[]).some(note=>note.id===id);
+  if(existing)state.notes=state.notes.map(note=>note.id===id?{...note,text}:note);
+  else state.notes=[...(state.notes||[]),{id:crypto.randomUUID(),date:noteEditingDate||state.selectedDate,text}];
+  persist();closeDialog($('#note-dialog'));render();
+  const savedAsNew = !!id && !existing;
+  toast(savedNotice(existing?'记事已更新。':savedAsNew?'原记事已删除，已另存为一条新记事。':'记事已保存。'));
 }
 $('#add-note').onclick=()=>openNote();
 $('#notes-list').onclick=event=>{
@@ -550,7 +557,10 @@ function completeTask(t) {
 function undoComplete(t){mascotView.reset();t.completed=false;persist();render();toast(savedNotice('已恢复为待完成，不会增加专注记录。'));}
 function startTask(t) {
   if(!t)return;
-  if(t.date!==dateKey(now())){openTask(t.id);toast('请在计划当天开始计时。');return;}
+  if(t.date!==dateKey(now())){
+    if(t.type==='study'&&!t.completed&&taskEnd(t)<=now().getTime()){openFinish(t);return;}
+    openTask(t.id);toast('请在计划当天开始计时。');return;
+  }
   if(taskEnd(t)<=now().getTime()){openFinish(t);return;}
   const launch=()=>{
     const startsNew=state.session?.taskId!==t.id;
@@ -595,7 +605,8 @@ $('#confirm-copy').onclick=()=>{
   const copies=dayTasks().map(t=>({...t,id:crypto.randomUUID(),date,completed:false}));
   for(const t of copies){const error=validateTask(t,state.tasks);if(error){$('#copy-error').textContent=`${date} 已有时间冲突，请换一天或先调整安排。`;return;}}
   state.tasks.push(...copies);
-  state.notes.push(...dayNotes().map(note=>({id:crypto.randomUUID(),date,text:note.text})));
+  const existingNotes=new Set((state.notes||[]).filter(note=>note.date===date).map(note=>note.text));
+  state.notes.push(...dayNotes().filter(note=>!existingNotes.has(note.text)).map(note=>({id:crypto.randomUUID(),date,text:note.text})));
   persist();closeDialog($('#copy-dialog'));setDate(date);toast(savedNotice('安排和记事已复制，新的一天慢慢来。'));
 };
 $('#demo-clock-settings').onclick=()=>showDialog('#clock-dialog');
@@ -743,7 +754,7 @@ $('#export-backup').onclick = () => {
     link.download = `作业时钟备份-${dateKey(stamp)}-${[p.hours,p.minutes,p.seconds].map(v=>String(v).padStart(2,'0')).join('')}.json`;
     document.body.append(link); link.click(); link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 30000);
-    $('#backup-result').textContent = '备份已生成，请保存在“文件”App 中。包含已保存的家庭设置和录音。';
+    $('#backup-result').textContent = '备份已生成，请保存在“文件”App 中。包含计划、记事、常用计划、专注记录、家庭设置和录音。';
     toast('备份文件已生成，请保存到“文件”。');
   } catch (error) { $('#backup-result').textContent = error.message || '备份未能生成，请重试。'; }
 };
@@ -779,8 +790,9 @@ $('#backup-file').onchange = async event => {
     if (!backupImportIsCurrent(generation)) return;
     const restored = parseBackup(text);
     if (!backupAvailable()) return;
-    confirmAction('恢复这份备份？', `包含 ${restored.tasks.length} 项安排、${restored.history.length} 条专注记录${countSceneVoices(restored.settings) ? `和 ${countSceneVoices(restored.settings)} 段情景录音` : ''}。将替换本机现有数据及未保存的设置；建议先导出本机备份。专注记录会保留，恢复后请手动开始计时。`, () => {
+    confirmAction('恢复这份备份？', `包含 ${restored.tasks.length} 项安排、${restored.history.length} 条专注记录${countSceneVoices(restored.settings) ? `和 ${countSceneVoices(restored.settings)} 段情景录音` : ''}。${state.session ? '当前有计时进行中，请先结束或暂停计时。' : ''}将替换本机现有数据及未保存的设置；建议先导出本机备份。专注记录会保留，恢复后请手动开始计时。`, () => {
       if (!backupImportIsCurrent(generation)) return;
+      if (state.session) { toast('当前还有计时进行中，请先结束或暂停计时，再恢复备份。'); return; }
       try { const serialized=JSON.stringify(restored);localStorage.setItem(STORE, serialized);lastStoredRaw=serialized; }
       catch { toast('本机存储空间不足或不可用，恢复未完成，原数据已保留。'); return; }
       voicePlayer.stop();
@@ -804,6 +816,7 @@ $('#reset-demo').onclick=()=>{if(writeBlocked){toast('本机数据待恢复，�
 function syncToday() {
   const today = dateKey(new Date());
   if (state.clock?.mode === 'demo' || state.lastActiveDate === today) return false;
+  if ($('#task-dialog').open || $('#note-dialog').open) return false;
   state.lastActiveDate = today;
   state.selectedDate = today;
   filter = 'all';
@@ -862,7 +875,7 @@ const updateGuard=createUpdateGuard({
     }:null),
     taskEditing:$('#task-dialog').open,
     stateConflict:!storageOK&&JSON.stringify(state)!==lastStoredRaw,
-    pendingAction:['#copy-dialog','#confirm-dialog','#clock-dialog','#finish-dialog'].some(selector=>$(selector).open),
+    pendingAction:['#copy-dialog','#confirm-dialog','#clock-dialog','#finish-dialog','#note-dialog'].some(selector=>$(selector).open),
   }),
   persist:()=>{
     if(writeBlocked)return false;
@@ -920,7 +933,7 @@ function adoptStoredState(raw){
   const remote=classifyStoredState(raw);
   if(remote.status!=='ok')return false;
   const normalized=normalizeStoredState(remote.value,{defaults,today:dateKey(new Date())});
-  const dropped=normalized.droppedTasks+normalized.droppedHistory;
+  const dropped=normalized.droppedTasks+normalized.droppedHistory+normalized.droppedNotes+normalized.droppedTemplates;
   let preserved=null;
   if(dropped){originalRaw=raw;preserved=recoveryRaw=preserveRecovery(raw);}
   state=normalized.state;
@@ -940,6 +953,7 @@ function adoptStoredState(raw){
     sceneVoiceSettings.open(state.settings);
   }
   if($('#focus-dialog').open&&state.session)focusTaskId=state.session.taskId;
+  $$('dialog[open]').forEach(closeDialog);
   startTicking();
   render();
   if(loadIssue)showRecoveryBanner('partial');

@@ -16,9 +16,15 @@ function fail(message = '备份内容不完整或格式不正确，请选择作�
   throw new Error(message);
 }
 
-function record(value, allowedKeys) {
+const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+function record(value, allowedKeys, { allowUnknown = false } = {}) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) fail();
-  if (Object.keys(value).some(key => !allowedKeys.includes(key))) fail();
+  const keys = Object.keys(value);
+  // Never let imported metadata alter the prototype chain. Unknown benign
+  // top-level fields are ignored for forward compatibility.
+  if (keys.some(key => FORBIDDEN_KEYS.has(key))) fail();
+  if (!allowUnknown && keys.some(key => !allowedKeys.includes(key))) fail();
   return value;
 }
 
@@ -65,7 +71,7 @@ function recording(value) {
 }
 
 function settings(value) {
-  record(value, ['sound', 'pet', 'companion', 'code', 'message', 'voice', 'voices']);
+  record(value, ['sound', 'pet', 'companion', 'code', 'message', 'voice', 'voices'], { allowUnknown: true });
   // Validate before migration: imported audio must remain embedded and bounded,
   // including a legacy recording that is superseded by a scene override.
   const legacyVoice = recording(value.voice);
@@ -119,21 +125,23 @@ function tasks(value) {
   return result;
 }
 
-function history(value) {
+function history(value, tasks, selectedDate) {
   const ids = new Set();
-  return list(value, 50000).map(item => {
+  return list(value, 50000).map((item, index) => {
     record(item, ['id', 'taskId', 'date', 'type', 'ms']);
-    const clean = {
-      id: text(item.id, 200),
-      taskId: text(item.taskId, 200),
-      date: calendarDate(item.date),
-      ms: milliseconds(item.ms),
-    };
-    if (item.type !== undefined) {
-      if (!TYPES.has(item.type)) fail();
-      clean.type = item.type;
+    const task = tasks.find(entry => entry.id === item.taskId);
+    // Legacy exports may contain only {ms}. Repair the missing identity so a
+    // readable live snapshot can always be exported instead of failing whole.
+    let id = item.id === undefined ? `legacy-${index}` : text(item.id, 200);
+    while (ids.has(id)) id += '-1';
+    const taskId = item.taskId === undefined ? 'legacy' : text(item.taskId, 200);
+    const date = item.date === undefined ? (task?.date || selectedDate) : calendarDate(item.date);
+    const clean = { id, taskId, date, ms: milliseconds(item.ms) };
+    const type = item.type === undefined ? task?.type : item.type;
+    if (type !== undefined) {
+      if (!TYPES.has(type)) fail();
+      clean.type = type;
     }
-    if (ids.has(clean.id)) fail('备份中有重复记录，未恢复任何数据。');
     ids.add(clean.id);
     // History can outlive a deleted task; keep those records intact.
     return clean;
@@ -203,7 +211,7 @@ function notes(value) {
 }
 
 function validateState(value) {
-  record(value, ['version', 'localUseVersion', 'tasks', 'selectedDate', 'settings', 'history', 'notes', 'templates', 'session', 'notified', 'clock']);
+  record(value, ['version', 'localUseVersion', 'tasks', 'selectedDate', 'settings', 'history', 'notes', 'templates', 'session', 'notified', 'clock', 'lastActiveDate'], { allowUnknown: true });
   if (value.version !== 1 || (value.localUseVersion !== undefined && value.localUseVersion !== 1)) fail('这个备份版本暂不支持，请使用对应版本的作业时钟。');
   const clean = {
     version: 1,
@@ -211,13 +219,14 @@ function validateState(value) {
     tasks: tasks(value.tasks),
     selectedDate: calendarDate(value.selectedDate),
     settings: settings(value.settings),
-    history: history(value.history),
     notes: notes(value.notes ?? []),
     templates: templates(value.templates ?? []),
     notified: list(value.notified ?? [], 100000).map(item => text(item, 300)),
     clock: clock(value.clock),
     session: null,
   };
+  clean.history = history(value.history, clean.tasks, clean.selectedDate);
+  if (value.lastActiveDate !== undefined) clean.lastActiveDate = calendarDate(value.lastActiveDate);
   clean.session = session(value.session, clean.tasks);
   return clean;
 }

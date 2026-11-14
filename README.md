@@ -4,7 +4,7 @@
 
 当前采用 PWA 本地自用方式：首次通过 HTTPS 加载并添加到 iPad 主屏，资源准备完成后日常离线使用。提醒只在打开时运行，回来后刷新计时；不开发微信小程序或后台通知。需要 iPadOS 15.4 或更新版本。
 
-完整项目资源纳入统一版本管理，仓库为 [caihker/homework-clock](https://github.com/caihker/homework-clock)，当前基线为 **v1.6.3**。目录范围、提交与发布流程见 [版本管理说明](docs/version-management.md)，各版本变化见 [CHANGELOG](CHANGELOG.md)。推送 `main` 后，GitHub Actions 会把 `demo/dist` 自动发布到 GitHub Pages。
+完整项目资源纳入统一版本管理，仓库为 [caihker/homework-clock](https://github.com/caihker/homework-clock)，当前基线为 **v1.6.4**。目录范围、提交与发布流程见 [版本管理说明](docs/version-management.md)，各版本变化见 [CHANGELOG](CHANGELOG.md)。推送 `main` 后，GitHub Actions 会把 `demo/dist` 自动发布到 GitHub Pages。
 
 ## 运行 Demo
 
@@ -21,6 +21,7 @@ npm start
 
 打开终端显示的本地地址，操作说明见 [Demo 说明](demo/README.md)。
 
+v1.6.4：修复备份导出失败（lastActiveDate 白名单）、恢复时保护进行中的计时、记事/跨午夜/过去日期/复制去重等边界；281 项检查通过。详见 [本轮验收](docs/verification-v1.6.4.md)。
 v1.6.3：记事下方新增「龟言龟语」，每次打开随机展示一条励志短句，可点「换一句」；276 项检查通过。详见 [本轮验收](docs/verification-v1.6.3.md)。
 v1.6.2：记事移到左侧「当前安排」下半部分并放大字号（iPad 18px），右侧时间轴更紧凑；273 项检查通过。详见 [本轮验收](docs/verification-v1.6.2.md)。
 v1.6.1：真实模式跨天打开 App 自动显示今天（同一天内的翻页保留），跨午夜自动切回今天；从过去日期新增安排会先回到今天。272 项检查通过。详见 [本轮验收](docs/verification-v1.6.1.md)。

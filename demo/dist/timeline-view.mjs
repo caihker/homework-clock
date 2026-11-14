@@ -40,7 +40,7 @@ export function createTimelineView({
     const notes = notesForDate(getState().notes, getSelectedDate());
     const list = $('#notes-list');
     if (!notes.length) { list.innerHTML = '<li class="note-empty">今天还没有记事</li>'; return; }
-    list.innerHTML = notes.map(note => `<li class="note-item"><button type="button" class="note-text" data-note-edit="${escape(note.id)}">${escape(note.text)}</button><button type="button" class="note-delete" data-note-delete="${escape(note.id)}" aria-label="删除记事">${icon('trash')}</button></li>`).join('');
+    list.innerHTML = notes.map(note => { const label = note.text.length > 20 ? `${note.text.slice(0, 20)}…` : note.text; return `<li class="note-item"><button type="button" class="note-text" data-note-edit="${escape(note.id)}">${escape(note.text)}</button><button type="button" class="note-delete" data-note-delete="${escape(note.id)}" aria-label="删除记事：${escape(label)}">${icon('trash')}</button></li>`; }).join('');
   }
 
   return { renderTimeline, renderNotes };

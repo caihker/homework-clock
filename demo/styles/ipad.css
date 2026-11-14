@@ -48,6 +48,7 @@
   .note-text { font-size:var(--tablet-body); line-height:1.55; }
   .note-empty { font-size:var(--tablet-small); }
   .note-item { padding:10px 0; }
+  .note-delete { flex-basis:44px; width:44px; height:44px; }
   .speech-bubble { max-width:100%; font-size:var(--tablet-body); padding:10px 12px 10px 18px; gap:12px; }
   .listen-button { width:44px; height:44px; flex-basis:44px; }
   .task-check::before, .task-edit::before, .listen-button::before { content:none; }
