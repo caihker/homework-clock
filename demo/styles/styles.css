@@ -542,6 +542,12 @@ dialog .toast { left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px))
 
 /* Day notes: free text, no time window, editable from the timeline end. */
 .notes-panel { margin-top:18px; border-top:1.5px dashed rgba(73, 50, 34, .25); padding-top:12px; }
+.turtle-words { margin-top:14px; padding:11px 14px 12px; border:1.5px dashed rgba(73, 50, 34, .28); border-radius:14px 12px 15px 12px; background:rgba(255, 255, 255, .5); }
+.turtle-words-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.turtle-words-heading h3 { display:inline-flex; align-items:center; gap:5px; font-size:var(--font-13); font-weight:850; letter-spacing:.02em; }
+.turtle-words-heading h3 svg.icon { width:15px; height:15px; }
+#turtle-words-text { margin-top:5px; font-size:var(--font-14); font-weight:600; line-height:1.55; color:var(--ink); text-wrap:pretty; overflow-wrap:anywhere; }
+.turtle-words .text-button { min-height:30px; padding:2px 0; font-size:var(--font-12); }
 .notes-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .notes-heading h3 { font-size: var(--font-15); font-weight:850; }
 .notes-list { list-style:none; margin:2px 0 0; padding:0; }

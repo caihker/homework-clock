@@ -50,3 +50,15 @@ test('day notes live in the current-arrangement card instead of the timeline', (
   assert.ok(current >= 0 && schedule > current);
   assert.ok(notes > current && notes < schedule, 'notes must be inside the left current card');
 });
+
+test('turtle sayings sit under notes inside the current card and can refresh', () => {
+  const notes = html.indexOf('class="notes-panel"');
+  const words = html.indexOf('class="turtle-words"');
+  const pet = html.indexOf('class="pet-card"');
+  assert.ok(notes > 0 && words > notes && pet > words, 'notes -> turtle words -> companion order');
+  assert.match(html, /id="turtle-words-text"/);
+  assert.match(html, /id="next-turtle-word"/);
+  assert.match(app, /function renderTurtleWords\(\)/);
+  assert.match(app, /pickTurtleWord\(currentTurtleWord\)/);
+  assert.match(app, /\$\('#next-turtle-word'\)\.onclick=renderTurtleWords/);
+});

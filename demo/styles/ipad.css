@@ -40,6 +40,11 @@
   .pet-card { min-height:84px; padding-top:24px; justify-content:center; }
   .notes-panel { padding-top:18px; }
   .notes-heading h3 { font-size:var(--tablet-body); }
+  .turtle-words { margin-top:18px; padding:14px 16px; }
+  .turtle-words-heading h3 { font-size:var(--tablet-body); gap:8px; }
+  .turtle-words-heading h3 svg.icon { width:20px; height:20px; }
+  #turtle-words-text { font-size:var(--tablet-body); line-height:1.55; }
+  .turtle-words .text-button { font-size:var(--tablet-small); }
   .note-text { font-size:var(--tablet-body); line-height:1.55; }
   .note-empty { font-size:var(--tablet-small); }
   .note-item { padding:10px 0; }
@@ -157,7 +162,7 @@
   main { padding:10px 28px 28px; }
   .dashboard { grid-template-columns:minmax(0,1fr); gap:28px; }
   .current-card { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); column-gap:24px; row-gap:20px; padding:28px 32px; }
-  .current-top, .current-card > .turtle-journey, .start-button, .pet-card, .current-card > .notes-panel { grid-column:1 / -1; }
+  .current-top, .current-card > .turtle-journey, .start-button, .pet-card, .current-card > .notes-panel, .current-card > .turtle-words { grid-column:1 / -1; }
   .current-task { margin:0; align-self:center; }
   .current-task h2 { font-size: var(--font-38); }
   .timer-wrap { margin:0; align-self:center; }

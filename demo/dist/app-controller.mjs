@@ -15,6 +15,7 @@ import { commitLocalState, readUpdateLock, releaseUpdateLock } from './update-st
 import { STATE_KEY, RECOVERY_KEY, classifyStoredState, normalizeStoredState, pruneNotified, chooseRecoveryExport, inspectStorage, notesForDate, dailyDate } from './store.mjs';
 import { TASK_TYPE_LABELS, DEFAULT_SETTINGS, TEMPLATE_MIN_MINUTES, TEMPLATE_MAX_MINUTES } from './schema.mjs';
 import { buildCalendar } from './ics.mjs';
+import { pickTurtleWord } from './turtle-words.mjs';
 import { $, $$, icon, escape, categoryIcon, setIcons, setCategoryIcons } from './dom.mjs';
 import { createTimelineView } from './timeline-view.mjs';
 import { createMascotView } from './mascot-view.mjs';
@@ -421,6 +422,12 @@ const templates={study:{title:'学习',type:'study'},meal:{title:'吃饭',type:'
 function applyTemplate(key) { if(!Object.hasOwn(templates,key))return;const t=templates[key];$('#task-title').value=t.title;$(`input[name="task-type"][value="${t.type}"]`).checked=true; }
 
 function currentTemplateDuration(){const start=toMinutes($('#task-start').value),end=toMinutes($('#task-end').value);return Number.isFinite(start)&&Number.isFinite(end)&&end>start?end-start:0;}
+let currentTurtleWord = '';
+function renderTurtleWords(){
+  const el = $('#turtle-words-text'); if (!el) return;
+  currentTurtleWord = pickTurtleWord(currentTurtleWord);
+  el.textContent = currentTurtleWord;
+}
 function renderCustomTemplates(){
   const box=$('#custom-template-chips');if(!box)return;
   const list=state.templates||[];box.hidden=!list.length;
@@ -471,6 +478,7 @@ $('#delete-task').onclick=()=>{
 $('#template-chips').onclick=e=>{const b=e.target.closest('[data-template]');if(b)applyTemplate(b.dataset.template);};
 $('#custom-template-chips').onclick=e=>{const b=e.target.closest('[data-custom-template]');if(b)applyCustomTemplate(b.dataset.customTemplate);};
 $('#save-template').onclick=saveTemplate;
+$('#next-turtle-word').onclick=renderTurtleWords;
 $('#template-manager').onclick=e=>{const b=e.target.closest('[data-delete-template]');if(!b)return;const id=b.dataset.deleteTemplate;const t=(state.templates||[]).find(item=>item.id===id);if(!t)return;confirmAction('删除常用计划？',`“${t.title}”将从常用计划中移除，已有安排不受影响。`,()=>{state.templates=(state.templates||[]).filter(item=>item.id!==id);persist();renderTemplateManager();renderCustomTemplates();toast(savedNotice('已删除常用计划。'));});};
 function setTaskFormError(message){$('#form-error').textContent=message;}
 function shiftTaskForm(delta){
@@ -950,7 +958,7 @@ if(bootBarrier){
   bootTimer=setTimeout(reopen,Math.max(0,pending.expiresAt-Date.now())+100);
   if(!readUpdateLock({storage:stateStorage,key:UPDATE_LOCK}))reopen();
 }
-setIcons();setCategoryIcons();mascotView.renderCompanionPreviews();
+renderTurtleWords();setIcons();setCategoryIcons();mascotView.renderCompanionPreviews();
 let bootError=null;
 try {
   // Upgrade old demo installs once; an explicit later demo selection is retained.

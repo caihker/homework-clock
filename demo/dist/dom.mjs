@@ -32,6 +32,7 @@ export const ICON_PATHS = {
   more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
   download: '<path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/>',
   upload: '<path d="M12 15V3m-5 5 5-5 5 5M4 16v5h16v-5"/>',
+  refresh: '<path d="M20 11a8 8 0 1 0-2.3 6.7M20 4v7h-7"/>',
 };
 
 export const icon = name => `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_PATHS[name] || ICON_PATHS.clock}</svg>`;
