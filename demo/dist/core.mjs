@@ -97,7 +97,18 @@ export function validateTask(task, tasks = []) {
   if (task.type != null && !TASK_TYPES.includes(task.type)) {
     return '请选择学习、生活或娱乐。';
   }
-  if (isConflict(task, tasks)) return '这个时间已经有安排了，换个时间试试。';
+  if (isConflict(task, tasks)) {
+    const start = toMinutes(task.start), end = toMinutes(task.end);
+    const clash = (Array.isArray(tasks) ? tasks : []).find(other => {
+      if (!other || (task.id != null && other.id === task.id)) return false;
+      if (task.date && other.date && task.date !== other.date) return false;
+      if (!durationMinutes(other)) return false;
+      return start < toMinutes(other.end) && toMinutes(other.start) < end;
+    });
+    return clash
+      ? `这个时间和“${clash.title}”（${clash.start}–${clash.end}）重叠了，换个时间试试。`
+      : '这个时间已经有安排了，换个时间试试。';
+  }
   return '';
 }
 

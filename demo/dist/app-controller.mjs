@@ -7,13 +7,14 @@ import { TURTLE_LINES, createVoicePlayer } from './voice-pack.mjs?v=1';
 import { createBackup, parseBackup, MAX_BACKUP_BYTES } from './backup.mjs';
 import { selectSceneVoice, countSceneVoices } from './scene-voices.mjs';
 import { createSceneVoiceSettings } from './scene-voice-settings.mjs';
-import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, shiftSlot } from './plan-view.mjs';
+import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, shiftSlot, slotFromDuration } from './plan-view.mjs';
 import { collectDueReminders } from './reminder-events.mjs';
 import { createUpdateGuard, hasSettingsDraft } from './update-guard.mjs';
 import { createUpdateSession } from './update-session.mjs';
 import { commitLocalState, readUpdateLock, releaseUpdateLock } from './update-storage.mjs';
 import { STATE_KEY, RECOVERY_KEY, classifyStoredState, normalizeStoredState, pruneNotified, chooseRecoveryExport, inspectStorage, notesForDate } from './store.mjs';
-import { TASK_TYPE_LABELS, DEFAULT_SETTINGS } from './schema.mjs';
+import { TASK_TYPE_LABELS, DEFAULT_SETTINGS, TEMPLATE_MIN_MINUTES, TEMPLATE_MAX_MINUTES } from './schema.mjs';
+import { buildCalendar } from './ics.mjs';
 import { $, $$, icon, escape, categoryIcon, setIcons, setCategoryIcons } from './dom.mjs';
 import { createTimelineView } from './timeline-view.mjs';
 import { createMascotView } from './mascot-view.mjs';
@@ -31,7 +32,7 @@ const TYPES = TASK_TYPE_LABELS;
 const timePicker = setupTimePicker();
 const defaults = DEFAULT_SETTINGS;
 const actualToday = dateKey(new Date());
-const sampleState = () => ({ version: 1, localUseVersion: 1, tasks: createSampleTasks(actualToday), selectedDate: actualToday, settings: { ...defaults }, history: [], notes: [], session: null, notified: [], clock: { mode: 'real' } });
+const sampleState = () => ({ version: 1, localUseVersion: 1, tasks: createSampleTasks(actualToday), selectedDate: actualToday, settings: { ...defaults }, history: [], notes: [], templates: [], session: null, notified: [], clock: { mode: 'real' } });
 let state;
 let storageOK = true;
 let lastStoredRaw = null;
@@ -70,6 +71,7 @@ if (inspected.loadIssue) {
   }
 }
 state.notes ||= [];
+state.templates ||= [];
 let filter = 'all';
 let currentId = null;
 let nextTaskId = null;
@@ -408,10 +410,39 @@ function openTask(id,template) {
   timePicker.sync();
   $(`input[name="task-type"][value="${t?.type||'study'}"]`).checked=true;
   $('#task-dialog-title').textContent=t?'编辑安排':'添加安排';$('#delete-task').hidden=!t;
-  showDialog('#task-dialog');if(template)applyTemplate(template);
+  renderCustomTemplates();showDialog('#task-dialog');if(template)applyTemplate(template);
 }
 const templates={study:{title:'学习',type:'study'},meal:{title:'吃饭',type:'life'},sport:{title:'运动',type:'life'},game:{title:'游戏',type:'play'}};
 function applyTemplate(key) { if(!Object.hasOwn(templates,key))return;const t=templates[key];$('#task-title').value=t.title;$(`input[name="task-type"][value="${t.type}"]`).checked=true; }
+
+function currentTemplateDuration(){const start=toMinutes($('#task-start').value),end=toMinutes($('#task-end').value);return Number.isFinite(start)&&Number.isFinite(end)&&end>start?end-start:0;}
+function renderCustomTemplates(){
+  const box=$('#custom-template-chips');if(!box)return;
+  const list=state.templates||[];box.hidden=!list.length;
+  box.innerHTML=list.map(t=>`<button type="button" data-custom-template="${escape(t.id)}">${escape(t.title)}</button>`).join('');
+}
+function renderTemplateManager(){
+  const box=$('#template-manager');if(!box)return;
+  const list=state.templates||[];
+  box.innerHTML=list.length?list.map(t=>`<div class="template-row"><span><strong>${escape(t.title)}</strong><small>${TYPES[t.type]} · ${t.duration} 分钟</small></span><button type="button" class="text-button" data-delete-template="${escape(t.id)}">删除</button></div>`).join(''):'<p class="muted">还没有常用计划。</p>';
+}
+function applyCustomTemplate(id){
+  const t=(state.templates||[]).find(item=>item.id===id);if(!t)return;
+  const slot=slotFromDuration($('#task-start').value,t.duration);
+  if(!slot){$('#form-error').textContent='当前开始时间放不下这个常用计划，请先调整开始时间。';return;}
+  $('#task-title').value=t.title;$(`input[name="task-type"][value="${t.type}"]`).checked=true;$('#task-end').value=slot.end;timePicker.sync();$('#form-error').textContent='';
+}
+function saveTemplate(){
+  const title=$('#task-title').value.trim();
+  if(!title){$('#form-error').textContent='先给这项安排起个名字吧。';return;}
+  const duration=currentTemplateDuration();
+  if(duration<TEMPLATE_MIN_MINUTES||duration>TEMPLATE_MAX_MINUTES){$('#form-error').textContent=`常用计划时长需在 ${TEMPLATE_MIN_MINUTES}–${TEMPLATE_MAX_MINUTES} 分钟。`;return;}
+  const type=$('input[name="task-type"]:checked')?.value||'study';
+  if((state.templates||[]).some(t=>t.title===title&&t.type===type&&t.duration===duration)){toast('这个常用计划已经有了。');return;}
+  state.templates=[...(state.templates||[]),{id:crypto.randomUUID(),title,type,duration}];
+  persist();renderCustomTemplates();toast(savedNotice('已存为常用计划。'));
+}
+
 $('#task-form').onsubmit=e=>{
   e.preventDefault();const old=getTask($('#task-id').value);
   const title=$('#task-title').value.trim(),type=$('input[name="task-type"]:checked').value;
@@ -433,6 +464,9 @@ $('#delete-task').onclick=()=>{
   });
 };
 $('#template-chips').onclick=e=>{const b=e.target.closest('[data-template]');if(b)applyTemplate(b.dataset.template);};
+$('#custom-template-chips').onclick=e=>{const b=e.target.closest('[data-custom-template]');if(b)applyCustomTemplate(b.dataset.customTemplate);};
+$('#save-template').onclick=saveTemplate;
+$('#template-manager').onclick=e=>{const b=e.target.closest('[data-delete-template]');if(!b)return;const id=b.dataset.deleteTemplate;const t=(state.templates||[]).find(item=>item.id===id);if(!t)return;confirmAction('删除常用计划？',`“${t.title}”将从常用计划中移除，已有安排不受影响。`,()=>{state.templates=(state.templates||[]).filter(item=>item.id!==id);persist();renderTemplateManager();renderCustomTemplates();toast(savedNotice('已删除常用计划。'));});};
 function setTaskFormError(message){$('#form-error').textContent=message;}
 function shiftTaskForm(delta){
   const slot=shiftSlot($('#task-start').value,$('#task-end').value,delta);
@@ -612,6 +646,7 @@ function openSettings(){
   $$('[name=companion]').forEach(input => { input.checked=input.value===normalizeCompanion(state.settings.companion); });
   setFamilyTextEditor(false);syncSettingsViewport();
   refreshRecoveryCopyActions();
+  renderTemplateManager();
   sceneVoiceSettings.open(state.settings);setSettingsTab('sound');showDialog('#settings-dialog');
 }
 $('#settings-button').onclick=openSettings;
@@ -698,6 +733,20 @@ $('#export-backup').onclick = () => {
     $('#backup-result').textContent = '备份已生成，请保存在“文件”App 中。包含已保存的家庭设置和录音。';
     toast('备份文件已生成，请保存到“文件”。');
   } catch (error) { $('#backup-result').textContent = error.message || '备份未能生成，请重试。'; }
+};
+$('#export-calendar').onclick = () => {
+  if (!backupAvailable()) return;
+  const tasks = dayTasks();
+  if (!tasks.length) { toast('这一天还没有安排。'); return; }
+  try {
+    const text = buildCalendar(tasks, { date: state.selectedDate });
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/calendar' }));
+    const link = document.createElement('a');
+    link.href = url; link.download = `作业时钟-${state.selectedDate}.ics`;
+    document.body.append(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    toast('日历文件已生成，可用系统“日历”导入。');
+  } catch { toast('日历文件生成失败，请重试。'); }
 };
 $('#import-backup').onclick = () => {
   if (importingBackup) { toast('正在读取备份，请稍候。'); return; }

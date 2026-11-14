@@ -81,3 +81,13 @@ export function shiftSlot(start, end, deltaMinutes, { minStart = MIN_PICKER_MINU
   if (nextStart < minStart || nextStart > maxStart || nextEnd > maxEnd || nextEnd <= nextStart) return null;
   return { start: toTime(nextStart), end: toTime(nextEnd) };
 }
+
+/** A template only stores duration; keep the chosen start when applying it. */
+export function slotFromDuration(start, duration, { minStart = MIN_PICKER_MINUTES, maxStart = MAX_START_MINUTES, maxEnd = MAX_PICKER_MINUTES } = {}) {
+  const from = toMinutes(start);
+  if (!Number.isFinite(from) || !Number.isInteger(duration) || duration < 10) return null;
+  if (from < minStart || from > maxStart) return null;
+  const end = Math.min(maxEnd, from + duration);
+  if (end <= from) return null;
+  return { start: toTime(from), end: toTime(end) };
+}

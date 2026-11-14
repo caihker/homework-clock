@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { dateAtTime } from '../dist/core.mjs';
 import { createSession, pauseSession, resumeSession } from '../dist/session-timer.mjs';
-import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, nowMarkerIndex, shiftSlot } from '../dist/plan-view.mjs';
+import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, nowMarkerIndex, shiftSlot, slotFromDuration } from '../dist/plan-view.mjs';
 
 const task = { id: 'math', date: '2026-11-01', title: '数学试卷', start: '10:00', end: '12:00', type: 'study' };
 const at = time => dateAtTime(task.date, time).getTime();
@@ -108,4 +108,13 @@ test('ten-minute shifts stay inside the picker window and preserve duration', ()
   assert.equal(shiftSlot('08:00', '09:00', -10), null);
   assert.equal(shiftSlot('bad', '11:00', 10), null);
   assert.equal(shiftSlot('10:00', '11:00', 1.5), null);
+});
+
+test('template durations keep the chosen start and clamp to the last end slot', () => {
+  assert.deepEqual(slotFromDuration('10:00', 90), { start: '10:00', end: '11:30' });
+  assert.deepEqual(slotFromDuration('20:30', 90), { start: '20:30', end: '21:50' });
+  assert.deepEqual(slotFromDuration('21:00', 60), { start: '21:00', end: '21:50' });
+  assert.equal(slotFromDuration('21:10', 60), null);
+  assert.equal(slotFromDuration('10:00', 5), null);
+  assert.equal(slotFromDuration('bad', 60), null);
 });

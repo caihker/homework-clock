@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   STATE_KEY, STATE_VERSION, RECOVERY_KEY, classifyStoredState, isStoredTaskValid,
-  normalizeStoredState, pruneNotified, chooseRecoveryExport, inspectStorage,
+  normalizeStoredState, pruneNotified, chooseRecoveryExport, inspectStorage, isStoredTemplateValid,
 } from '../dist/store.mjs';
 
 const TODAY = '2026-11-02';
@@ -212,4 +212,23 @@ test('inspectStorage keeps a complete snapshot and reports unavailable storage',
   assert.equal(blocked.storageOK, false);
   assert.equal(blocked.status, 'empty');
   assert.equal(blocked.loadIssue, null);
+});
+
+test('plan templates are normalized by id, title, type and 10–600 minute duration', () => {
+  const template = (overrides = {}) => ({ id: 'tpl', title: '数学卷子', type: 'study', duration: 90, ...overrides });
+  assert.equal(isStoredTemplateValid(template()), true);
+  for (const bad of [null, {}, template({ id: '' }), template({ title: ' ' }), template({ title: 'x'.repeat(61) }),
+    template({ type: 'other' }), template({ duration: 9 }), template({ duration: 601 }), template({ duration: 90.5 })]) {
+    assert.equal(isStoredTemplateValid(bad), false, JSON.stringify(bad));
+  }
+  const { state, droppedTemplates } = normalize(snapshot({
+    templates: [template(), template({ id: 'bad', duration: 5 }), null],
+  }));
+  assert.deepEqual(state.templates, [template()]);
+  assert.equal(droppedTemplates, 2);
+});
+
+test('older snapshots default to an empty template list', () => {
+  const { state } = normalize(snapshot());
+  assert.deepEqual(state.templates, []);
 });

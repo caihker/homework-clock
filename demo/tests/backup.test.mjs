@@ -16,6 +16,7 @@ const fixture = () => ({
   settings: { sound: true, pet: true, code: '小皮开工了', message: '先做一道！', voice: 'data:audio/mp4;codecs=mp4a.40.2;base64,YXVkaW8=' },
   history: [{ id: 'earlier', taskId: 'deleted-task', date: task.date, type: 'study', ms: 15 * minute }],
   notes: [],
+  templates: [],
   session: null,
   clock: { mode: 'real' },
   notified: ['chinese:10:00:12:00:start'],
@@ -298,6 +299,30 @@ test('invalid or duplicate notes reject the whole backup', () => {
   ]) {
     const original = fixture();
     original.notes = notes;
+    assert.throws(() => createBackup(original), /备份/);
+  }
+});
+
+test('reusable plan templates survive a backup round trip', () => {
+  const original = fixture();
+  original.templates = [{ id: 'tpl-a', title: '数学卷子', type: 'study', duration: 90 }];
+  const restored = parseBackup(createBackup(original, at(11)));
+  assert.deepEqual(restored.templates, original.templates);
+  original.templates[0].title = 'changed';
+  assert.equal(restored.templates[0].title, '数学卷子');
+});
+
+test('invalid or duplicate plan templates reject the whole backup', () => {
+  for (const templates of [
+    [{ id: 'a', title: '', type: 'study', duration: 90 }],
+    [{ id: 'a', title: 'x', type: 'other', duration: 90 }],
+    [{ id: 'a', title: 'x', type: 'study', duration: 5 }],
+    [{ id: 'a', title: 'x', type: 'study', duration: 601 }],
+    [{ id: 'a', title: 'x', type: 'study', duration: 90 }, { id: 'a', title: 'y', type: 'study', duration: 90 }],
+    [{ id: 'a', title: 'x', type: 'study', duration: 90, extra: true }],
+  ]) {
+    const original = fixture();
+    original.templates = templates;
     assert.throws(() => createBackup(original), /备份/);
   }
 });

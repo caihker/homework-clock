@@ -3,7 +3,7 @@ import { dateAtTime, dateKey, toMinutes, validateTask, TASK_TYPES } from './core
 import { sessionElapsedMs } from './session-timer.mjs';
 import { SCENES, normalizeSceneVoices } from './scene-voices.mjs';
 import { readEmbeddedAudio } from './audio-format.mjs';
-import { MAX_BACKUP_BYTES, MAX_RECORDING_BYTES, NOTE_MAX_LENGTH, DEFAULT_SETTINGS } from './schema.mjs';
+import { MAX_BACKUP_BYTES, MAX_RECORDING_BYTES, NOTE_MAX_LENGTH, DEFAULT_SETTINGS, TEMPLATE_MIN_MINUTES, TEMPLATE_MAX_MINUTES } from './schema.mjs';
 
 export { MAX_BACKUP_BYTES };
 const SCENE_KEYS = SCENES.map(scene => scene.key);
@@ -177,6 +177,20 @@ function session(value, allTasks) {
   return clean;
 }
 
+function templates(value) {
+  const ids = new Set();
+  return list(value, 500).map(template => {
+    record(template, ['id', 'title', 'type', 'duration']);
+    const clean = { id: text(template.id, 200), title: text(template.title, 60), type: template.type, duration: template.duration };
+    if (!TYPES.has(clean.type) || !Number.isInteger(clean.duration) || clean.duration < TEMPLATE_MIN_MINUTES || clean.duration > TEMPLATE_MAX_MINUTES) {
+      fail('备份中的常用计划不正确。');
+    }
+    if (ids.has(clean.id)) fail('备份中有重复的常用计划，未恢复任何数据。');
+    ids.add(clean.id);
+    return clean;
+  });
+}
+
 function notes(value) {
   const ids = new Set();
   return list(value, 2000).map(note => {
@@ -189,7 +203,7 @@ function notes(value) {
 }
 
 function validateState(value) {
-  record(value, ['version', 'localUseVersion', 'tasks', 'selectedDate', 'settings', 'history', 'notes', 'session', 'notified', 'clock']);
+  record(value, ['version', 'localUseVersion', 'tasks', 'selectedDate', 'settings', 'history', 'notes', 'templates', 'session', 'notified', 'clock']);
   if (value.version !== 1 || (value.localUseVersion !== undefined && value.localUseVersion !== 1)) fail('这个备份版本暂不支持，请使用对应版本的作业时钟。');
   const clean = {
     version: 1,
@@ -199,6 +213,7 @@ function validateState(value) {
     settings: settings(value.settings),
     history: history(value.history),
     notes: notes(value.notes ?? []),
+    templates: templates(value.templates ?? []),
     notified: list(value.notified ?? [], 100000).map(item => text(item, 300)),
     clock: clock(value.clock),
     session: null,

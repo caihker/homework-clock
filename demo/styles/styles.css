@@ -553,3 +553,15 @@ dialog .toast { left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px))
 .note-delete:hover { background:var(--coral); color:var(--ink); }
 .note-empty { color:var(--muted); font-size: var(--font-12); padding:6px 0; }
 #note-text { min-height:88px; resize:vertical; }
+
+/* Reusable plan templates and the calendar export entry share the settings page. */
+.settings-templates { margin-top:14px; border-top:1px solid var(--line); padding-top:12px; }
+.settings-templates h3 { font-size:var(--font-16); font-weight:700; margin-bottom:6px; }
+.template-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px dashed var(--line); }
+.template-row:last-child { border-bottom:0; }
+.template-row span { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.template-row strong { font-size:var(--font-14); overflow-wrap:anywhere; }
+.template-row small { color:var(--muted); font-size:var(--font-12); }
+#template-chips { margin-bottom:7px; }
+#custom-template-chips { margin-bottom:10px; }
+#save-template { margin:-8px 0 20px; }

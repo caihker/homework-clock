@@ -2,11 +2,12 @@
 import { dateAtTime, TASK_TYPES, validateTask } from './core.mjs';
 import { normalizeCompanion } from './companion.mjs';
 import { normalizeSceneVoices } from './scene-voices.mjs';
-import { STATE_KEY, STATE_VERSION, RECOVERY_KEY, NOTE_MAX_LENGTH } from './schema.mjs';
+import { STATE_KEY, STATE_VERSION, RECOVERY_KEY, NOTE_MAX_LENGTH, TEMPLATE_MIN_MINUTES, TEMPLATE_MAX_MINUTES } from './schema.mjs';
 
-export { STATE_KEY, STATE_VERSION, RECOVERY_KEY, NOTE_MAX_LENGTH };
+export { STATE_KEY, STATE_VERSION, RECOVERY_KEY, NOTE_MAX_LENGTH, TEMPLATE_MIN_MINUTES, TEMPLATE_MAX_MINUTES };
 
 const types = new Set(TASK_TYPES);
+const TEMPLATE_TYPES = types;
 const record = value => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 const own = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
 
@@ -25,6 +26,14 @@ export function classifyStoredState(raw) {
   if (!Array.isArray(value.tasks)) return { status: 'invalid', reason: 'tasks' };
   if (!record(value.settings)) return { status: 'invalid', reason: 'settings' };
   return { status: 'ok', value };
+}
+
+/** A reusable plan template: title, type and duration (no calendar date). */
+export function isStoredTemplateValid(template) {
+  if (!record(template) || typeof template.id !== 'string' || !template.id.trim()) return false;
+  if (typeof template.title !== 'string' || !template.title.trim() || template.title.length > 60) return false;
+  if (!TEMPLATE_TYPES.has(template.type)) return false;
+  return Number.isInteger(template.duration) && template.duration >= TEMPLATE_MIN_MINUTES && template.duration <= TEMPLATE_MAX_MINUTES;
 }
 
 /** A dated note has no time window; only its date and text are required. */
@@ -68,6 +77,12 @@ export function normalizeStoredState(value, { defaults = {}, today } = {}) {
     droppedNotes += 1;
     return false;
   });
+  let droppedTemplates = 0;
+  const templates = (Array.isArray(value.templates) ? value.templates : []).filter(template => {
+    if (isStoredTemplateValid(template)) return true;
+    droppedTemplates += 1;
+    return false;
+  });
   let selectedDate = today;
   if (Number.isFinite(dateAtTime(value.selectedDate).getTime())) selectedDate = value.selectedDate;
   const session = record(value.session) ? value.session : null;
@@ -84,6 +99,7 @@ export function normalizeStoredState(value, { defaults = {}, today } = {}) {
       selectedDate,
       history,
       notes,
+      templates,
       session,
       notified,
       clock,
@@ -91,6 +107,7 @@ export function normalizeStoredState(value, { defaults = {}, today } = {}) {
     droppedTasks,
     droppedHistory: (Array.isArray(value.history) ? value.history.length : 0) - history.length,
     droppedNotes,
+    droppedTemplates,
   };
 }
 
@@ -128,7 +145,7 @@ export function inspectStorage({ storage, key = STATE_KEY, today, defaults = {},
   const stored = classifyStoredState(raw);
   if (stored.status === 'ok') {
     const normalized = normalizeStoredState(stored.value, { defaults, today });
-    const dropped = normalized.droppedTasks + normalized.droppedHistory + normalized.droppedNotes;
+    const dropped = normalized.droppedTasks + normalized.droppedHistory + normalized.droppedNotes + normalized.droppedTemplates;
     return {
       status: 'ok', storageOK: true, raw, state: normalized.state,
       loadIssue: dropped ? { status: 'partial', dropped, preserved: false } : null,

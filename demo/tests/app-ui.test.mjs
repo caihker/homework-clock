@@ -27,3 +27,12 @@ test('the day timeline offers free-text notes without a time window', () => {
   assert.match(timelineView, /function renderNotes\(\)/);
   assert.match(app, /state\.notes=\[\.\.\.\(state\.notes\|\|\[\]\)/);
 });
+
+test('reusable plans and calendar export are exposed without a server', () => {
+  assert.match(html, /id="custom-template-chips"/);
+  assert.match(html, /id="save-template"/);
+  assert.match(html, /id="template-manager"/);
+  assert.match(html, /id="export-calendar"/);
+  assert.match(app, /function saveTemplate\(\)/);
+  assert.match(app, /buildCalendar\(tasks/);
+});

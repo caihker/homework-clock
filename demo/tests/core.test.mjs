@@ -70,6 +70,7 @@ test('adjacent plans are valid but intersecting, contained and equal slots confl
   assert.equal(isConflict({ ...base, id: 'covers', start: '09:00', end: '13:00' }, [base]), true);
   assert.equal(isConflict({ ...base, id: 'equal' }, [base]), true);
   assert.ok(validateTask({ ...base, id: 'overlap' }, [base]));
+  assert.equal(validateTask({ ...base, id: 'overlap' }, [base]), `这个时间和“${base.title}”（${base.start}–${base.end}）重叠了，换个时间试试。`);
 });
 
 test('editing the same record and plans on different dates do not conflict', () => {
