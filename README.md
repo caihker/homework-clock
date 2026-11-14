@@ -4,7 +4,7 @@
 
 当前采用 PWA 本地自用方式：首次通过 HTTPS 加载并添加到 iPad 主屏，资源准备完成后日常离线使用。提醒只在打开时运行，回来后刷新计时；不开发微信小程序或后台通知。需要 iPadOS 15.4 或更新版本。
 
-完整项目资源纳入统一版本管理，仓库为 [caihker/homework-clock](https://github.com/caihker/homework-clock)，当前基线为 **v1.9.0**。目录范围、提交与发布流程见 [版本管理说明](docs/version-management.md)，各版本变化见 [CHANGELOG](CHANGELOG.md)。推送 `main` 后，GitHub Actions 会把 `demo/dist` 自动发布到 GitHub Pages。
+完整项目资源纳入统一版本管理，仓库为 [caihker/homework-clock](https://github.com/caihker/homework-clock)，当前基线为 **v1.10.0**。目录范围、提交与发布流程见 [版本管理说明](docs/version-management.md)，各版本变化见 [CHANGELOG](CHANGELOG.md)。推送 `main` 后，GitHub Actions 会把 `demo/dist` 自动发布到 GitHub Pages。
 
 ## 运行 Demo
 
@@ -21,6 +21,7 @@ npm start
 
 打开终端显示的本地地址，操作说明见 [Demo 说明](demo/README.md)。
 
+v1.10.0：每周重复新增「到日期」结束方式（含当天，最多 400 次），与按次数二选一；288 项检查通过。详见 [本轮验收](docs/verification-v1.10.0.md)。
 v1.9.0：每周重复支持多星期组合（一至日圆点、默认当前星期），每个选中星期各重复 4/8/12 次；287 项检查通过。详见 [本轮验收](docs/verification-v1.9.0.md)。
 v1.8.0：每周重复支持「同时修改以后所有未完成实例」和「删除以后所有重复」，逐条校验且可撤销；286 项检查通过。详见 [本轮验收](docs/verification-v1.8.0.md)。
 v1.7.0：新增每周重复安排（同一星期、4/8/12 周、逐周冲突校验、备份保留）；编辑/删除单次，复制不串组；284 项检查通过。详见 [本轮验收](docs/verification-v1.7.0.md)。

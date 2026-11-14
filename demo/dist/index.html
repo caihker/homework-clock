@@ -104,7 +104,11 @@
       <fieldset class="type-field"><legend>这是一段什么时间</legend><div class="type-options"><label><input type="radio" name="task-type" value="study" checked><span><span class="category-choice-icon" data-category="study"></span>学习</span></label><label><input type="radio" name="task-type" value="life"><span><span class="category-choice-icon" data-category="life"></span>生活</span></label><label><input type="radio" name="task-type" value="play"><span><span class="category-choice-icon" data-category="play"></span>娱乐</span></label></div></fieldset>
       <div id="repeat-row" class="repeat-row">
         <label class="repeat-toggle"><input type="checkbox" id="repeat-weekly"> 每周重复</label>
-        <select id="repeat-weeks" aria-label="每个选中星期重复几次"><option value="4">4 次</option><option value="8" selected>8 次</option><option value="12">12 次</option></select>
+        <div class="repeat-options">
+          <select id="repeat-end-mode" aria-label="重复结束方式" hidden><option value="count">按次数</option><option value="date">到日期</option></select>
+          <select id="repeat-weeks" aria-label="每个选中星期重复几次"><option value="4">4 次</option><option value="8" selected>8 次</option><option value="12">12 次</option></select>
+          <input id="repeat-until" type="date" aria-label="重复到哪一天" hidden>
+        </div>
       </div>
       <div class="repeat-days" id="repeat-days" role="group" aria-label="每周重复的星期" hidden>
         <label><input type="checkbox" value="1">一</label><label><input type="checkbox" value="2">二</label><label><input type="checkbox" value="3">三</label><label><input type="checkbox" value="4">四</label><label><input type="checkbox" value="5">五</label><label><input type="checkbox" value="6">六</label><label><input type="checkbox" value="0">日</label>
@@ -173,7 +177,7 @@
       <div class="settings-shortcuts"><button class="text-button" id="today-nav">回到今天</button><button class="text-button" id="demo-clock-settings">演示时间</button></div>
       <button class="text-button settings-reset" id="reset-demo">重新体验示例</button>
     </section>
-    <div class="modal-actions settings-save"><span class="settings-version">v1.9.0</span><button class="button primary" id="save-settings">保存设置<span data-icon="check"></span></button></div>
+    <div class="modal-actions settings-save"><span class="settings-version">v1.10.0</span><button class="button primary" id="save-settings">保存设置<span data-icon="check"></span></button></div>
   </dialog>
   <dialog id="clock-dialog" class="modal compact-modal" aria-labelledby="clock-dialog-title"><div class="modal-heading"><div><h2 id="clock-dialog-title">演示时间</h2></div><button class="icon-button close-modal" aria-label="关闭" data-icon="x"></button></div><div class="clock-presets"><button data-clock="10:20"><span>10:20</span>语文预习</button><button data-clock="12:30"><span>12:30</span>午饭时间</button><button data-clock="14:55"><span>14:55</span>游戏收尾</button><button data-clock="15:40"><span>15:40</span>数学试卷</button></div><button class="button secondary full-width" id="use-real-time">使用实际时间</button></dialog>
   <dialog id="copy-dialog" class="modal compact-modal" aria-labelledby="copy-dialog-title"><div class="modal-heading"><h2 id="copy-dialog-title">复制一天的安排</h2><button class="icon-button close-modal" aria-label="关闭" data-icon="x"></button></div><p class="muted">复制计划名称和时间，完成记录从新的一天开始。</p><label class="field">复制到<input id="copy-date" type="date" required></label><div class="form-error" id="copy-error" role="alert"></div><div class="modal-actions"><button class="button secondary close-modal">取消</button><button class="button primary" id="confirm-copy">确认复制</button></div></dialog>
@@ -183,7 +187,7 @@
   <div class="toast" id="toast" role="status" aria-live="polite"><span id="toast-message"></span><button id="toast-undo">撤销</button></div>
   <dialog id="update-progress-dialog" class="modal compact-modal" aria-label="正在更新作业时钟"><h2>正在更新…</h2><p class="muted">计划、录音和计时会保留，马上回来。</p></dialog>
   <audio id="reminder-audio" preload="auto" hidden></audio>
-  <script type="module" src="./app.mjs?v=1.9.0"></script>
-  <script type="module" src="./pwa.mjs?v=1.9.0"></script>
+  <script type="module" src="./app.mjs?v=1.10.0"></script>
+  <script type="module" src="./pwa.mjs?v=1.10.0"></script>
 </body>
 </html>

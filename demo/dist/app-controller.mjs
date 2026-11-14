@@ -7,7 +7,7 @@ import { TURTLE_LINES, createVoicePlayer } from './voice-pack.mjs?v=1';
 import { createBackup, parseBackup, MAX_BACKUP_BYTES } from './backup.mjs';
 import { selectSceneVoice, countSceneVoices } from './scene-voices.mjs';
 import { createSceneVoiceSettings } from './scene-voice-settings.mjs';
-import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, shiftSlot, slotFromDuration, weeklyDates, seriesFrom, repeatDates, weekdayOf } from './plan-view.mjs';
+import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, shiftSlot, slotFromDuration, weeklyDates, seriesFrom, repeatDates, repeatDatesUntil, weekdayOf } from './plan-view.mjs';
 import { collectDueReminders } from './reminder-events.mjs';
 import { createUpdateGuard, hasSettingsDraft } from './update-guard.mjs';
 import { createUpdateSession } from './update-session.mjs';
@@ -419,6 +419,11 @@ function openTask(id,template) {
   $('#repeat-row').hidden=!!t;
   $('#repeat-weekly').checked=false;
   $('#repeat-days').hidden=true;
+  $('#repeat-end-mode').hidden=true;
+  $('#repeat-end-mode').value='count';
+  $('#repeat-weeks').hidden=false;
+  $('#repeat-until').hidden=true;
+  $('#repeat-until').value='';
   $$('#repeat-days input').forEach(input=>{input.checked=Number(input.value)===weekdayOf(taskEditingDate||state.selectedDate);});
   $('#repeat-hint').hidden=!t?.seriesId;
   $('#series-scope').hidden=!t?.seriesId;
@@ -481,12 +486,17 @@ $('#task-form').onsubmit=e=>{
     const windowIssue=windowError(task);
     if(windowIssue){$('#form-error').textContent=windowIssue;return;}
   }
-  const repeatCount=!old&&$('#repeat-weekly').checked?Number($('#repeat-weeks').value):0;
-  if(repeatCount){
+  const repeatOn=!old&&$('#repeat-weekly').checked;
+  const repeatCount=repeatOn&&$('#repeat-end-mode').value==='count'?Number($('#repeat-weeks').value):0;
+  if(repeatOn){
     const weekdays=$$('#repeat-days input:checked').map(input=>Number(input.value));
     if(!weekdays.length){$('#form-error').textContent='至少选择一个重复的星期。';return;}
-    const dates=repeatDates(task.date,weekdays,repeatCount);
-    if(!dates.length){$('#form-error').textContent='无法生成重复日期，请检查开始日期。';return;}
+    const until=$('#repeat-until').value;
+    if($('#repeat-end-mode').value==='date'&&!until){$('#form-error').textContent='请选择重复到的日期。';return;}
+    const dates=$('#repeat-end-mode').value==='date'
+      ?repeatDatesUntil(task.date,weekdays,until)
+      :repeatDates(task.date,weekdays,repeatCount);
+    if(!dates.length){$('#form-error').textContent='重复日期无效或次数过多（最多 400 次）。';return;}
     const seriesId=crypto.randomUUID();
     const instances=dates.map(date=>({...task,id:crypto.randomUUID(),date,seriesId,completed:false}));
     const trial=[...state.tasks];
@@ -501,7 +511,7 @@ $('#task-form').onsubmit=e=>{
     if(state.session?.taskId===task.id)stopSession();
     state.tasks.push(...instances);
     persist();closeDialog($('#task-dialog'));render();
-    toast(savedNotice(storageOK?`已安排未来 ${dates.length} 次${weekdays.length>1?`，覆盖 ${weekdays.length} 个星期`:''}。`:'当前更改暂未保存，请检查浏览器存储。'));
+    toast(savedNotice(storageOK?`已安排 ${dates.length} 次${weekdays.length>1?`，覆盖 ${weekdays.length} 个星期`:''}。`:'当前更改暂未保存，请检查浏览器存储。'));
     return;
   }
   if(old?.seriesId&&$('#series-future').checked){
@@ -550,10 +560,20 @@ $('#template-chips').onclick=e=>{const b=e.target.closest('[data-template]');if(
 $('#custom-template-chips').onclick=e=>{const b=e.target.closest('[data-custom-template]');if(b)applyCustomTemplate(b.dataset.customTemplate);};
 $('#save-template').onclick=saveTemplate;
 $('#repeat-weekly').onchange=()=>{
-  $('#repeat-days').hidden=!$('#repeat-weekly').checked;
-  if($('#repeat-weekly').checked&&!$$('#repeat-days input:checked').length){
+  const on=$('#repeat-weekly').checked;
+  $('#repeat-days').hidden=!on;$('#repeat-end-mode').hidden=!on;
+  if(on&&!$$('#repeat-days input:checked').length){
     const day=String(weekdayOf(taskEditingDate||state.selectedDate));
     const input=$(`#repeat-days input[value="${day}"]`);if(input)input.checked=true;
+  }
+};
+$('#repeat-end-mode').onchange=()=>{
+  const byDate=$('#repeat-end-mode').value==='date';
+  $('#repeat-weeks').hidden=byDate;$('#repeat-until').hidden=!byDate;
+  if(byDate){
+    const start=taskEditingDate||state.selectedDate;
+    $('#repeat-until').min=start;
+    if(!$('#repeat-until').value)$('#repeat-until').value=shiftDate(start,56);
   }
 };
 $('#repeat-days').onchange=event=>{

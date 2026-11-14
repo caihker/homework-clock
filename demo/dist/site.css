@@ -587,7 +587,9 @@ dialog .toast { left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px))
 .repeat-row[hidden] { display:none; }
 .repeat-toggle { display:inline-flex; align-items:center; gap:8px; }
 .repeat-toggle input { width:18px; height:18px; accent-color:var(--teal); }
-.repeat-row select { margin-left:auto; min-height:32px; padding:2px 8px; border:1.5px solid var(--line-strong); border-radius:var(--radius-8); background:var(--white); color:var(--ink); font-size:var(--font-13); }
+.repeat-options { display:flex; align-items:center; gap:8px; margin-left:auto; flex-wrap:wrap; justify-content:flex-end; }
+.repeat-row select, .repeat-row input[type="date"] { min-height:32px; padding:2px 8px; border:1.5px solid var(--line-strong); border-radius:var(--radius-8); background:var(--white); color:var(--ink); font-size:var(--font-13); }
+.repeat-row input[type="date"] { min-width:140px; }
 .repeat-hint { margin:-4px 0 12px; color:var(--muted); font-size:var(--font-12); line-height:1.5; }
 
 .series-scope { display:flex; align-items:center; gap:8px; margin:-2px 0 12px; font-size:var(--font-13); color:var(--ink); }
@@ -771,7 +773,9 @@ dialog .toast { left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px))
   .notes-heading h3 { font-size:var(--tablet-body); }
   .repeat-row { font-size:var(--tablet-body); gap:14px; }
   .repeat-toggle input { width:24px; height:24px; }
-  .repeat-row select { min-height:48px; font-size:var(--tablet-body); }
+  .repeat-options { gap:12px; }
+  .repeat-row select, .repeat-row input[type="date"] { min-height:48px; font-size:var(--tablet-body); }
+  .repeat-row input[type="date"] { min-width:180px; }
   .repeat-hint { font-size:var(--tablet-small); }
   .repeat-days { gap:10px; }
   .repeat-days label { min-width:48px; min-height:48px; font-size:var(--tablet-body); }

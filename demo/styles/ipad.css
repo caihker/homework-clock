@@ -42,7 +42,9 @@
   .notes-heading h3 { font-size:var(--tablet-body); }
   .repeat-row { font-size:var(--tablet-body); gap:14px; }
   .repeat-toggle input { width:24px; height:24px; }
-  .repeat-row select { min-height:48px; font-size:var(--tablet-body); }
+  .repeat-options { gap:12px; }
+  .repeat-row select, .repeat-row input[type="date"] { min-height:48px; font-size:var(--tablet-body); }
+  .repeat-row input[type="date"] { min-width:180px; }
   .repeat-hint { font-size:var(--tablet-small); }
   .repeat-days { gap:10px; }
   .repeat-days label { min-width:48px; min-height:48px; font-size:var(--tablet-body); }

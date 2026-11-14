@@ -136,3 +136,22 @@ export function repeatDates(startDate, weekdays, count) {
   }
   return [...new Set(dates)].sort();
 }
+
+/** Repeat selected weekdays from start through an inclusive end date. */
+export function repeatDatesUntil(startDate, weekdays, untilDate, { max = 400 } = {}) {
+  if (!Number.isFinite(dateAtTime(startDate).getTime()) || !Number.isFinite(dateAtTime(untilDate).getTime())) return [];
+  if (untilDate < startDate) return [];
+  const startWeekday = weekdayOf(startDate);
+  if (startWeekday < 0) return [];
+  const days = [...new Set((Array.isArray(weekdays) ? weekdays : []).filter(day => Number.isInteger(day) && day >= 0 && day <= 6))];
+  if (!days.length) return [];
+  const dates = [];
+  for (const day of days) {
+    const offset = (day - startWeekday + 7) % 7;
+    for (let cursor = shiftDate(startDate, offset); cursor && cursor <= untilDate; cursor = shiftDate(cursor, 7)) {
+      dates.push(cursor);
+      if (dates.length > max) return [];
+    }
+  }
+  return [...new Set(dates)].sort();
+}

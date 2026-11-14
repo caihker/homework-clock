@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { dateAtTime } from '../dist/core.mjs';
 import { createSession, pauseSession, resumeSession } from '../dist/session-timer.mjs';
-import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, nowMarkerIndex, shiftSlot, slotFromDuration, weeklyDates, seriesFrom, repeatDates, weekdayOf } from '../dist/plan-view.mjs';
+import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, nowMarkerIndex, shiftSlot, slotFromDuration, weeklyDates, seriesFrom, repeatDates, repeatDatesUntil, weekdayOf } from '../dist/plan-view.mjs';
 
 const task = { id: 'math', date: '2026-11-01', title: '数学试卷', start: '10:00', end: '12:00', type: 'study' };
 const at = time => dateAtTime(task.date, time).getTime();
@@ -152,4 +152,13 @@ test('repeatDates supports several weekdays, one count per weekday', () => {
   assert.deepEqual(repeatDates('2026-11-14', [], 4), []);
   assert.deepEqual(repeatDates('2026-11-14', [6], 0), []);
   assert.deepEqual(repeatDates('2026-11-14', [8], 4), []);
+});
+
+test('repeatDatesUntil stops on an inclusive end date and refuses invalid ranges', () => {
+  assert.deepEqual(repeatDatesUntil('2026-11-14', [6], '2026-12-05'), ['2026-11-14', '2026-11-21', '2026-11-28', '2026-12-05']);
+  assert.deepEqual(repeatDatesUntil('2026-11-14', [1, 6], '2026-11-23'), ['2026-11-14', '2026-11-16', '2026-11-21', '2026-11-23']);
+  assert.deepEqual(repeatDatesUntil('2026-11-14', [6], '2026-11-13'), []);
+  assert.deepEqual(repeatDatesUntil('2026-11-14', [6], '2026-02-30'), []);
+  assert.deepEqual(repeatDatesUntil('2026-11-14', [], '2026-12-05'), []);
+  assert.deepEqual(repeatDatesUntil('2026-11-14', [6], '2035-12-31'), []);
 });
