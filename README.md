@@ -4,11 +4,13 @@
 
 当前采用 PWA 本地自用方式：首次通过 HTTPS 加载并添加到 iPad 主屏，资源准备完成后日常离线使用。提醒只在打开时运行，回来后刷新计时；不开发微信小程序或后台通知。需要 iPadOS 15.4 或更新版本。
 
-完整项目资源纳入统一版本管理，私有仓库为 [caihker/homework-clock](https://github.com/caihker/homework-clock)，当前基线为 **v1.6.1**。目录范围、提交与发布流程见 [版本管理说明](docs/version-management.md)，各版本变化见 [CHANGELOG](CHANGELOG.md)。GitHub用于保存源码和资源，iPad仍通过下面的私有网址更新。
+完整项目资源纳入统一版本管理，仓库为 [caihker/homework-clock](https://github.com/caihker/homework-clock)，当前基线为 **v1.6.1**。目录范围、提交与发布流程见 [版本管理说明](docs/version-management.md)，各版本变化见 [CHANGELOG](CHANGELOG.md)。推送 `main` 后，GitHub Actions 会把 `demo/dist` 自动发布到 GitHub Pages。
 
 ## 运行 Demo
 
-[打开私有在线 Demo](https://homework-clock-demo-caihker.wujiyu2002.chatgpt.site)，可以在 iPad Safari 中访问。
+[打开在线版（GitHub Pages）](https://caihker.github.io/homework-clock/)，可以在 iPad Safari 中访问；推送 `main` 后自动更新。原私有站点 https://homework-clock-demo-caihker.wujiyu2002.chatgpt.site 仍保留，但需手动发布。
+
+> 换网址（例如从私有站点迁到 GitHub Pages）不会带走 iPad 本机数据：先在旧站「家庭小设置 → 本机与备份 → 导出备份」，到新地址恢复后再重新「添加到主屏」。
 
 ```sh
 cd demo

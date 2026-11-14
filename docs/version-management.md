@@ -67,6 +67,10 @@ shasum -a 256 artifacts/homework-clock-v1.2.5-full.zip > artifacts/SHA256SUMS.tx
 
 ## GitHub与iPad更新的关系
 
-推送GitHub不会自动更新现有私有网站。本仓库的自动流程只做检查，不包含网站发布凭据。网站发布仍使用原有私有站点流程，验证后更新，发布结果写回 `releases/`。
+推送 `main` 后，`.github/workflows/pages.yml` 会运行版本检查、构建、测试，并把 `demo/dist` 发布到 GitHub Pages：https://caihker.github.io/homework-clock/ 。GitHub Pages 使用公开地址；应用数据仍只保存在 iPad 本机。
+
+原私有站点（https://homework-clock-demo-caihker.wujiyu2002.chatgpt.site）仍使用原有手动发布流程，不会被 GitHub 推送自动更新。发布结果仍建议写回 `releases/`。
+
+GitHub Pages 与原私有站点是不同网址，浏览器本机数据按网址隔离：迁移时先在旧站导出备份，到新地址恢复，再重新添加到主屏。
 
 需要恢复旧版本时，从目标标签检出到独立文件夹，检查测试后再发布；保留新版本的历史，不删除标签。源码回退不等于回退iPad本机计划，计划和录音备份仍按应用内的导出、恢复流程处理。
