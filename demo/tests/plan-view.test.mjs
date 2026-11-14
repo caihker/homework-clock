@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { dateAtTime } from '../dist/core.mjs';
 import { createSession, pauseSession, resumeSession } from '../dist/session-timer.mjs';
-import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, nowMarkerIndex, shiftSlot, slotFromDuration, weeklyDates, seriesFrom } from '../dist/plan-view.mjs';
+import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, nowMarkerIndex, shiftSlot, slotFromDuration, weeklyDates, seriesFrom, repeatDates, weekdayOf } from '../dist/plan-view.mjs';
 
 const task = { id: 'math', date: '2026-11-01', title: '数学试卷', start: '10:00', end: '12:00', type: 'study' };
 const at = time => dateAtTime(task.date, time).getTime();
@@ -140,4 +140,16 @@ test('seriesFrom returns only that series at or after the chosen date, sorted', 
   assert.deepEqual(seriesFrom(tasks, 's1', '2026-11-01').map(t => t.id), ['a', 'b', 'c']);
   assert.deepEqual(seriesFrom(tasks, 'missing', '2026-11-01'), []);
   assert.deepEqual(seriesFrom(null, 's1', '2026-11-01'), []);
+});
+
+test('repeatDates supports several weekdays, one count per weekday', () => {
+  assert.equal(weekdayOf('2026-11-14'), 6);
+  assert.equal(weekdayOf('2026-11-15'), 0);
+  assert.equal(weekdayOf('bad'), -1);
+  assert.deepEqual(repeatDates('2026-11-14', [6], 4), ['2026-11-14', '2026-11-21', '2026-11-28', '2026-12-05']);
+  assert.deepEqual(repeatDates('2026-11-14', [1, 6], 2), ['2026-11-14', '2026-11-16', '2026-11-21', '2026-11-23']);
+  assert.deepEqual(repeatDates('2026-11-14', [6, 6], 2), ['2026-11-14', '2026-11-21']);
+  assert.deepEqual(repeatDates('2026-11-14', [], 4), []);
+  assert.deepEqual(repeatDates('2026-11-14', [6], 0), []);
+  assert.deepEqual(repeatDates('2026-11-14', [8], 4), []);
 });

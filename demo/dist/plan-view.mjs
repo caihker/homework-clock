@@ -111,3 +111,28 @@ export function seriesFrom(tasks, seriesId, fromDate) {
     .filter(task => task && task.seriesId === seriesId && task.date >= fromDate)
     .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 }
+
+/** Weekday in GMT+8: 0 = Sunday … 6 = Saturday. */
+export function weekdayOf(date) {
+  const value = dateAtTime(date);
+  if (!Number.isFinite(value.getTime())) return -1;
+  return new Date(value.getTime() + 8 * 60 * 60 * 1000).getUTCDay();
+}
+
+/** Each selected weekday repeats `count` times, first occurrence on/after start. */
+export function repeatDates(startDate, weekdays, count) {
+  if (!Number.isInteger(count) || count < 1 || count > 52) return [];
+  const startWeekday = weekdayOf(startDate);
+  if (startWeekday < 0) return [];
+  const days = [...new Set((Array.isArray(weekdays) ? weekdays : []).filter(day => Number.isInteger(day) && day >= 0 && day <= 6))];
+  if (!days.length) return [];
+  const dates = [];
+  for (const day of days) {
+    const offset = (day - startWeekday + 7) % 7;
+    for (let index = 0; index < count; index += 1) {
+      const date = shiftDate(startDate, offset + index * 7);
+      if (date) dates.push(date);
+    }
+  }
+  return [...new Set(dates)].sort();
+}

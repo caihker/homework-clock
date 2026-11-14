@@ -594,6 +594,13 @@ dialog .toast { left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px))
 .series-scope input { width:18px; height:18px; accent-color:var(--teal); }
 #delete-series { margin:0 0 10px; font-size:var(--font-12); }
 
+.repeat-days { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 12px; }
+.repeat-days[hidden] { display:none; }
+.repeat-days label { display:inline-flex; align-items:center; justify-content:center; min-width:32px; min-height:32px; border:1.5px solid var(--line-strong); border-radius:50%; background:var(--white); font-size:var(--font-12); font-weight:650; cursor:pointer; }
+.repeat-days input { position:absolute; opacity:0; pointer-events:none; }
+.repeat-days label:has(input:checked) { border-color:var(--teal); background:var(--teal-soft); color:var(--teal); }
+.repeat-days label:has(input:focus-visible) { outline:3px solid var(--blue-ink); outline-offset:2px; }
+
 /* time-picker.css */
 /* The time picker shares the comic palette with the rest of the app. */
 .time-trigger {
@@ -766,6 +773,8 @@ dialog .toast { left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px))
   .repeat-toggle input { width:24px; height:24px; }
   .repeat-row select { min-height:48px; font-size:var(--tablet-body); }
   .repeat-hint { font-size:var(--tablet-small); }
+  .repeat-days { gap:10px; }
+  .repeat-days label { min-width:48px; min-height:48px; font-size:var(--tablet-body); }
   .series-scope { font-size:var(--tablet-body); gap:12px; }
   .series-scope input { width:24px; height:24px; }
   #delete-series { font-size:var(--tablet-body); }
