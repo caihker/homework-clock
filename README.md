@@ -4,7 +4,7 @@
 
 当前采用 PWA 本地自用方式：首次通过 HTTPS 加载并添加到 iPad 主屏，资源准备完成后日常离线使用。提醒只在打开时运行，回来后刷新计时；不开发微信小程序或后台通知。需要 iPadOS 15.4 或更新版本。
 
-完整项目资源纳入统一版本管理，私有仓库为 [caihker/homework-clock](https://github.com/caihker/homework-clock)，当前基线为 **v1.5.2**。目录范围、提交与发布流程见 [版本管理说明](docs/version-management.md)，各版本变化见 [CHANGELOG](CHANGELOG.md)。GitHub用于保存源码和资源，iPad仍通过下面的私有网址更新。
+完整项目资源纳入统一版本管理，私有仓库为 [caihker/homework-clock](https://github.com/caihker/homework-clock)，当前基线为 **v1.5.3**。目录范围、提交与发布流程见 [版本管理说明](docs/version-management.md)，各版本变化见 [CHANGELOG](CHANGELOG.md)。GitHub用于保存源码和资源，iPad仍通过下面的私有网址更新。
 
 ## 运行 Demo
 
@@ -17,6 +17,7 @@ npm start
 
 打开终端显示的本地地址，操作说明见 [Demo 说明](demo/README.md)。
 
+v1.5.3：阶段 4 第三批完成：抽出 `mascot-view.mjs`（陪伴/乌龟/庆祝）与 `clock-view.mjs`（计时/专注页/统计），`app.mjs` 降至约 910 行；246 项检查通过。详见 [本轮验收](docs/verification-v1.5.3.md)。
 v1.5.2：阶段 4 第二批完成：抽出 `dom.mjs` 与 `timeline-view.mjs`，记事筛选收敛到 `store.notesForDate()`；CSS 增加设置页、离线状态与阴影 token；246 项检查通过。详见 [本轮验收](docs/verification-v1.5.2.md)。
 v1.5.1：阶段 4 第一批完成：统一 schema 常量、抽出可测试的 `inspectStorage()` 加载逻辑、清理无引用 CSS 并补齐 `--green` token；243 项检查通过。详见 [本轮验收](docs/verification-v1.5.1.md)。
 v1.5.0：时间选择器在 10 分钟档位之外支持直接输入时间（08:00–21:50 校验）；新增不带时间段的「记事」，可编辑删除并纳入本机保存与备份。240 项检查通过。详见 [本轮验收](docs/verification-v1.5.0.md)。

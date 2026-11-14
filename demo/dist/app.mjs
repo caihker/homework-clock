@@ -1,7 +1,5 @@
-import { companionAsset, companionFraming, normalizeCompanion } from './companion.mjs';
+import { normalizeCompanion } from './companion.mjs';
 import { completionStats } from './completion-stats.mjs';
-import { advanceTurtle } from './turtle-travel.mjs?v=progress-sync-1';
-import { mascotMood, moodLabels } from './mascot.mjs';
 import { toMinutes, toTime, validateTask, isConflict, remainingSeconds, dateKey, createSampleTasks, TIME_ZONE, dateAtTime, shiftDate, clockParts } from './core.mjs';
 import { setupTimePicker, MIN_PICKER_MINUTES, MAX_START_MINUTES, MAX_PICKER_MINUTES, isWithinSchedulingWindow } from './time-picker.mjs?v=1.2.2';
 import { createSession, normalizeSession, sessionElapsedMs, sessionRemainingMs, pauseSession, resumeSession, sessionDeadlineMs, sessionBreakRemainingMs } from './session-timer.mjs?v=0.4.1';
@@ -18,6 +16,8 @@ import { STATE_KEY, RECOVERY_KEY, classifyStoredState, normalizeStoredState, pru
 import { TASK_TYPE_LABELS, DEFAULT_SETTINGS } from './schema.mjs';
 import { $, $$, icon, escape, categoryIcon, setIcons, setCategoryIcons } from './dom.mjs';
 import { createTimelineView } from './timeline-view.mjs';
+import { createMascotView } from './mascot-view.mjs';
+import { createClockView } from './clock-view.mjs';
 
 const STORE = STATE_KEY;
 const UPDATE_LOCK = 'homework-clock-update-lock-v1';
@@ -377,127 +377,25 @@ function render() {
   timelineView.renderNotes();
   updateClocks();
 }
-let celebration = null;
-const turtleTrips = new Map();
-function tripFor(task) {
- const key=task?.id || 'idle';
- if(!turtleTrips.has(key)) turtleTrips.set(key,{position:0,progress:null,direction:1});
- return turtleTrips.get(key);
-}
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+const mascotView = createMascotView({
+  $, $$, taskStart, taskEnd,
+  getState: () => state, getTask,
+  getCurrentId: () => currentId, getFocusTaskId: () => focusTaskId, getFinishTaskId: () => finishTaskId,
+  getNow: () => now(), isUpdateLocked: () => updateLocked, reducedMotion,
+});
 $$('.turtle-turn').forEach(button=>button.onclick=()=>{
  const task=getTask(button.closest('#focus-journey')?focusTaskId:currentId);
- tripFor(task).direction *= -1;
- updateClocks();
+ mascotView.turn(task);updateClocks();
 });
-function syncTurtleJourney(el,task,progress) {
- const trip=tripFor(task);Object.assign(trip,advanceTurtle(trip,progress));
- el.style.setProperty('--task-progress',`${trip.progress*100}%`);
- const track=el.querySelector('[role="progressbar"]');
- track.setAttribute('aria-valuenow',String(Math.round(trip.progress*100)));
- el.querySelector('button').setAttribute('aria-label',`小乌龟向${trip.direction===1?'右':'左'}，点击调头`);
- el.querySelector('button').hidden=!state.settings.pet;
-}
 
-const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-function frameCompanion(el,style,asset,options){
-  el.dataset.companionStyle=normalizeCompanion(style);
-  const frame=companionFraming(style,asset,options);el.classList.add('companion-art');
-  el.style.setProperty('--companion-scale',String(frame.scale));el.style.setProperty('--companion-x',`${frame.x}%`);el.style.setProperty('--companion-y',`${frame.y}%`);
-}
-function renderCompanionPreviews(){
-  $$('[data-companion-preview]').forEach(el=>{
-    // Keep the settings preview static: switching to the solid style must not
-    // pull its animation frames into the launch path.
-    const style=el.dataset.companionPreview;
-    const src=style==='original'?'./assets/turtle-mascot.png':companionAsset(style,'ready',false);
-    if(el.getAttribute('src')!==src)el.setAttribute('src',src);
-    frameCompanion(el,style,'ready',{animated:false,preview:true});
-  });
-}
-/** Fall back to the cached still frame when a lazy companion frame cannot load. */
-function companionFallback(el) {
-  const style = normalizeCompanion(el.dataset.companionStyle || el.dataset.companionPreview || 'original');
-  el.dataset.companionFallback = style;
-  const still = style === 'solid' ? './assets/motion-solid/still.png' : './assets/turtle-mascot.png';
-  if (el.getAttribute('src') !== still) el.setAttribute('src', still);
-}
-document.addEventListener('error', event => {
-  const el = event.target;
-  if (el instanceof HTMLImageElement && el.classList.contains('companion-art')) companionFallback(el);
-}, true);
-// A later online session may fetch the lazy frames again.
-window.addEventListener('online', () => $$('.companion-art').forEach(el => { delete el.dataset.companionFallback; }));
-reducedMotion.addEventListener('change', () => {renderCompanionPreviews();updateMascots(now().getTime());});
-document.addEventListener('visibilitychange', () => updateMascots(now().getTime()));
-function updateMascots(at) {
-  if(updateLocked)return;
-  const celebrate = celebration && Date.now() < celebration.until && state.selectedDate === celebration.date;
-  const apply = (el, task, extra = false) => {
-    const active=task&&state.session?.taskId===task.id;
-    const end=active?sessionDeadlineMs(state.session,task,at):task&&taskEnd(task);
-    const start=active?Math.min(taskStart(task),state.session.startedAt):task&&taskStart(task);
-    const mood = mascotMood({task, session: state.session, at, start, end, celebrating: extra});
-    // Blender-rendered joint animation. Switch sources only when needed so
-    // the frame sequence keeps playing across clock ticks. The non-default
-    // style is lazy: if its frame cannot load, stay on the cached still frame.
-    const style = normalizeCompanion(state.settings.companion);
-    const animated = state.settings.pet && !reducedMotion.matches && !document.hidden && el.dataset.companionFallback !== style;
-    const asset = mood==='happy'?'happy-jump':mood==='walking'?`walking-${tripFor(task).direction===1?'right':'left'}`:mood;
-    const src = companionAsset(style, asset, animated);
-    frameCompanion(el,style,asset,{animated});
-    el.classList.toggle('face-right', mood!=='walking' && mood!=='happy' && tripFor(task).direction===1 && !!el.closest('.turtle-turn'));
-    el.classList.toggle('face-right-static', !animated && tripFor(task).direction===1 && !!el.closest('.turtle-turn'));
-    if (el.getAttribute('src') !== src) el.setAttribute('src', src);
-    if (el.dataset.mood !== mood) { el.dataset.mood = mood; el.alt = moodLabels[mood]; }
-  };
-  apply($('.pet-illustration'), getTask(currentId), celebrate);
-  $('.pet-illustration').hidden=!state.settings.pet || !celebrate;
-  apply($('.progress-turtle'), getTask(currentId));
-  apply($('.focus-pet img'), getTask(focusTaskId));
-  apply($('.finish-mascot'), getTask(finishTaskId));
-  $$('.empty-mascot').forEach(el => apply(el, null));
-}
-function celebrateTask(t) {
-  celebration = {date:t.date, until:Date.now()+5000};
-  updateMascots(now().getTime());
-}
-function updateClocks() {
-  const n=now(),at=n.getTime(),t=getTask(currentId);
-  updateMascots(at);
-  const focusSound=$('#focus-sound');
-  if(focusSound){focusSound.innerHTML=icon(state.settings.sound?'volume':'volume-off');focusSound.setAttribute('aria-label',state.settings.sound?'关闭声音提醒':'开启声音提醒');}
-  $('#clock-mode').textContent=`${state.clock.mode==='demo'?'演示':'北京'} ${clockText(n)}`;
-  $('#clock-display').title=`${state.clock.mode==='demo'?'演示时间':'北京时间'} · GMT+8`;
-  const active=t&&state.session?.taskId===t.id;
-  const upcoming=t&&!active&&taskStart(t)>at;
-  const partsNow=clockParts(n);
-  const sec=t?(upcoming?(taskStart(t)-at)/1000:timerSeconds(t,at)):partsNow.hours*3600+partsNow.minutes*60+partsNow.seconds;
-  const countdown=upcoming?compactCountdown(sec):{days:0,clockSeconds:sec};
-  const parts=formatSeconds(countdown.clockSeconds).split(':');
-  $('#main-timer').innerHTML=`${parts[0]}<span>:</span>${parts[1]}<small>:${parts[2]}</small>`;
-  $('#timer-caption').textContent=!t?'现在':upcoming?(countdown.days?`距离开始 · ${countdown.days} 天`:'距离开始'):timerSeconds(t,at)<=0?'时间到！':'距离结束';
-  const mainFraction=taskProgress(t,state.session,at);
-  syncTurtleJourney($('#main-journey'),t,mainFraction);
-  const ftProgress=getTask(focusTaskId);
-  const focusFraction=taskProgress(ftProgress,state.session,at);
-  syncTurtleJourney($('#focus-journey'),ftProgress,focusFraction);
-  updateMascots(at);
-  $('#session-badge').textContent=!t?'自由时刻':t.completed?'已完成':active?(state.session.paused?'休息中':'计时中'):taskEnd(t)<=at?'待确认':upcoming?'即将开始':'准备开始';
-  let ms=state.history.filter(h=>h.date===state.selectedDate&&(h.type||getTask(h.taskId)?.type)==='study').reduce((sum,h)=>sum+h.ms,0);
-  if(state.session?.date===state.selectedDate&&getTask(state.session.taskId)?.type==='study')ms+=sessionMs(at);
-  $('#focused-count').innerHTML=`${Math.floor(ms/60000)}<span> 分钟</span>`;
-  if($('#focus-dialog').open) {
-    const ft=getTask(focusTaskId);if(!ft)return;
-    $('#focus-title').textContent=ft.title;
-    $('#focus-timer').textContent=formatSeconds(timerSeconds(ft,at));
-    const active=state.session?.taskId===ft.id;
-    const deadline=active?sessionDeadlineMs(state.session,ft,at):taskEnd(ft);
-    $('#focus-end').textContent=`计划在 ${clockText(new Date(deadline))} 结束 · ${TYPES[ft.type]}`;
-    const breakLeft=active?sessionBreakRemainingMs(state.session,ft,at):0;
-    $('#focus-status').textContent=active?(state.session.paused?`休息 ${formatSeconds(breakLeft/1000).slice(3)} · 到点自动继续`:'专注这一件！'):'准备，开始！';
-    $('#pause-session').innerHTML=`${icon(active&&!state.session.paused?'pause':'play')}<span>${active?(state.session.paused?'结束休息':'休息 5 分钟'):'开始计时'}</span>`;
-  }
-}
+const clockView = createClockView({
+  $, icon, clockText, clockParts, formatSeconds, compactCountdown, taskProgress,
+  sessionDeadlineMs, sessionBreakRemainingMs, timerSeconds, sessionMs, taskStart, taskEnd,
+  types: TYPES, mascotView,
+  getState: () => state, getTask, getCurrentId: () => currentId, getFocusTaskId: () => focusTaskId, getNow: () => now(),
+});
+function updateClocks() { clockView.updateClocks(); }
 
 function openTask(id,template) {
   const t=getTask(id);$('#task-form').reset();$('#form-error').textContent='';
@@ -594,12 +492,12 @@ $('#notes-list').onclick=event=>{
 $('#save-note').onclick=saveNote;
 $('#delete-note').onclick=()=>deleteNote($('#note-id').value);
 function completeTask(t) {
-  if(!t)return;const was=t.completed;if(state.session?.taskId===t.id)stopSession();t.completed=true;celebration={date:t.date,until:Date.now()+5000};
+  if(!t)return;const was=t.completed;if(state.session?.taskId===t.id)stopSession();t.completed=true;mascotView.celebrate(t);
   closeDialog($('#focus-dialog'));closeDialog($('#finish-dialog'));persist();render();
   playTurtle('complete');
-  toast(savedNotice(`${t.title}完成啦，给自己一点掌声。`),()=>{celebration=null;t.completed=was;persist();render();});
+  toast(savedNotice(`${t.title}完成啦，给自己一点掌声。`),()=>{mascotView.reset();t.completed=was;persist();render();});
 }
-function undoComplete(t){celebration=null;t.completed=false;persist();render();toast(savedNotice('已恢复为待完成，不会增加专注记录。'));}
+function undoComplete(t){mascotView.reset();t.completed=false;persist();render();toast(savedNotice('已恢复为待完成，不会增加专注记录。'));}
 function startTask(t) {
   if(!t)return;
   if(t.date!==dateKey(now())){openTask(t.id);toast('请在计划当天开始计时。');return;}
@@ -622,7 +520,7 @@ $('#pause-session').onclick=()=>{
 };
 $('#complete-session').onclick=()=>completeTask(getTask(focusTaskId));
 $('#focus-sound').onclick=()=>{state.settings.sound=!state.settings.sound;if(!state.settings.sound)voicePlayer.stop();persist();toast(savedNotice(state.settings.sound?'声音提醒已开启。':'声音提醒已关闭。'));};
-function openFinish(t) { finishTaskId=t.id;$('#finish-title').textContent=`${t.title}做完了吗？`;$('#finish-error').textContent='';closeDialog($('#focus-dialog'));showDialog('#finish-dialog');updateMascots(now().getTime()); }
+function openFinish(t) { finishTaskId=t.id;$('#finish-title').textContent=`${t.title}做完了吗？`;$('#finish-error').textContent='';closeDialog($('#focus-dialog'));showDialog('#finish-dialog');mascotView.updateMascots(now().getTime()); }
 $('#finish-done').onclick=()=>completeTask(getTask(finishTaskId));
 $('#finish-later').onclick=()=>{closeDialog($('#finish-dialog'));toast('已经记下，安排下一段时间时再接着做。');};
 $('#finish-extend').onclick=()=>{
@@ -827,7 +725,7 @@ $('#backup-file').onchange = async event => {
       hideRecoveryBanner();
       updateSaveState();refreshRecoveryCopyActions();
       currentId = focusTaskId = finishTaskId = null;
-      celebration = null; turtleTrips.clear(); filter = 'all';
+      mascotView.reset(); filter = 'all';
       $$('[data-filter]').forEach(button => button.classList.toggle('active', button.dataset.filter === 'all'));
       startTicking();render();
       toast('备份已恢复，正在使用真实时间。');
@@ -980,7 +878,7 @@ if(bootBarrier){
   bootTimer=setTimeout(reopen,Math.max(0,pending.expiresAt-Date.now())+100);
   if(!readUpdateLock({storage:stateStorage,key:UPDATE_LOCK}))reopen();
 }
-setIcons();setCategoryIcons();renderCompanionPreviews();
+setIcons();setCategoryIcons();mascotView.renderCompanionPreviews();
 let bootError=null;
 try {
   // Upgrade old demo installs once; an explicit later demo selection is retained.
