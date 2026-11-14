@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizePickerMinutes, pickerMinutesForHour, isWithinSchedulingWindow, setupTimePicker, MAX_START_MINUTES } from '../dist/time-picker.mjs';
+import { normalizePickerMinutes, pickerMinutesForHour, isWithinSchedulingWindow, parsePickerInput, setupTimePicker, MAX_START_MINUTES, MAX_PICKER_MINUTES } from '../dist/time-picker.mjs';
 
 test('end picker clamps to 08:00–21:50 with ten-minute options throughout the last hour', () => {
   assert.equal(normalizePickerMinutes('07:50'), 480);
@@ -61,7 +61,7 @@ function pickerUI(t) {
     trigger.valueLabel = element(); trigger.querySelector = () => trigger.valueLabel;
     return trigger;
   });
-  const controls = { '#time-picker-value': element(), '#time-picker-title': element(), '#confirm-time': element(), '#cancel-time': element() };
+  const controls = { '#time-picker-input': element(), '#time-picker-error': element(), '#time-picker-value': element(), '#time-picker-title': element(), '#confirm-time': element(), '#cancel-time': element() };
   const dialog = element();
   dialog.querySelector = selector => selector === '.hours-grid' ? hoursGrid : selector === '.minutes-grid' ? minutesGrid : controls[selector];
   dialog.querySelectorAll = selector => selector === '[data-hour]' ? hours : minutes;
@@ -108,4 +108,40 @@ test('opening or cancelling the picker does not rewrite legacy non-ten-minute ti
   ui.controls['#cancel-time'].emit('click');
   assert.equal(ui.fields['task-start'].value, '18:23');
   assert.equal(ui.fields['task-end'].value, '19:47');
+});
+
+test('manual entry accepts arbitrary minutes inside the scheduling window', () => {
+  assert.equal(parsePickerInput('09:07'), 9 * 60 + 7);
+  assert.equal(parsePickerInput('9:5'), 9 * 60 + 5);
+  assert.equal(parsePickerInput('21：00', { maxMinutes: MAX_START_MINUTES }), 21 * 60);
+  assert.equal(parsePickerInput('21:50', { maxMinutes: MAX_PICKER_MINUTES }), 21 * 60 + 50);
+  assert.equal(parsePickerInput('07:59'), null);
+  assert.equal(parsePickerInput('21:10', { maxMinutes: MAX_START_MINUTES }), null);
+  assert.equal(parsePickerInput('21:51'), null);
+  assert.equal(parsePickerInput('25:00'), null);
+  assert.equal(parsePickerInput('9:70'), null);
+  assert.equal(parsePickerInput(''), null);
+});
+
+test('typing a time into the picker commits it without losing the grid selection', t => {
+  const ui = pickerUI(t);
+  ui.fields['task-start'].value = '10:00';
+  ui.triggers[0].emit('click');
+  ui.controls['#time-picker-input'].value = '09:07';
+  ui.controls['#time-picker-input'].emit('change');
+  ui.controls['#confirm-time'].emit('click');
+  assert.equal(ui.fields['task-start'].value, '09:07');
+  assert.equal(ui.focused(), ui.triggers[0]);
+});
+
+test('invalid manual input keeps the picker open and reports the allowed window', t => {
+  const ui = pickerUI(t);
+  ui.fields['task-start'].value = '10:00';
+  ui.triggers[0].emit('click');
+  ui.controls['#time-picker-input'].value = '22:10';
+  ui.controls['#time-picker-input'].emit('change');
+  assert.match(ui.controls['#time-picker-error'].textContent, /08:00–21:00/);
+  ui.controls['#confirm-time'].emit('click');
+  assert.equal(ui.fields['task-start'].value, '10:00');
+  assert.equal(ui.controls['#time-picker-error'].textContent.includes('21:00'), true);
 });

@@ -499,6 +499,20 @@ dialog .toast { left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px))
 .task-quick-actions { display:flex; flex-wrap:wrap; gap:2px 16px; align-items:center; margin:4px 0 12px; }
 .task-quick-actions .text-button { min-height:30px; }
 
+/* Day notes: free text, no time window, editable from the timeline end. */
+.notes-panel { margin-top:12px; border-top:1px solid var(--line); padding-top:4px; }
+.notes-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.notes-heading h3 { font-size:13px; font-weight:850; }
+.notes-list { list-style:none; margin:2px 0 0; padding:0; }
+.note-item { display:flex; align-items:flex-start; gap:6px; padding:6px 0; border-bottom:1px dashed var(--line); }
+.note-item:last-child { border-bottom:0; }
+.note-text { flex:1; min-width:0; border:0; background:none; padding:2px 0; text-align:left; font-size:13px; line-height:1.55; white-space:pre-wrap; overflow-wrap:anywhere; color:var(--ink); border-radius:4px; }
+.note-text:hover { text-decoration:underline; text-underline-offset:3px; }
+.note-delete { flex:0 0 32px; align-self:center; display:inline-flex; justify-content:center; align-items:center; width:32px; height:32px; border:0; background:none; color:var(--muted); border-radius:6px; }
+.note-delete:hover { background:var(--coral); color:var(--ink); }
+.note-empty { color:var(--muted); font-size:12px; padding:6px 0; }
+#note-text { min-height:88px; resize:vertical; }
+
 /* time-picker.css */
 /* The time picker shares the comic palette with the rest of the app. */
 .time-trigger {
@@ -613,6 +627,10 @@ dialog .toast { left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px))
 @media (prefers-reduced-motion: reduce) {
   .time-trigger, .time-option { transition: none; }
 }
+
+.time-picker-input { width:100%; border:0; background:transparent; text-align:center; font:inherit; color:inherit; letter-spacing:inherit; padding:0; border-radius:8px; }
+.time-picker-input:focus-visible { outline:3px solid #7960ca; outline-offset:4px; }
+.time-picker-input::placeholder { color:var(--muted); font-size:.5em; letter-spacing:0; }
 
 /* session-controls.css */
 .task-start { flex: 0 0 44px; width: 44px; min-height: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid var(--ink); border-radius: 9px 7px 9px 7px; background: var(--purple); box-shadow: 2px 2px 0 var(--ink); }

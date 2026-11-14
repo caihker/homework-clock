@@ -111,3 +111,7 @@
 @media (prefers-reduced-motion: reduce) {
   .time-trigger, .time-option { transition: none; }
 }
+
+.time-picker-input { width:100%; border:0; background:transparent; text-align:center; font:inherit; color:inherit; letter-spacing:inherit; padding:0; border-radius:8px; }
+.time-picker-input:focus-visible { outline:3px solid #7960ca; outline-offset:4px; }
+.time-picker-input::placeholder { color:var(--muted); font-size:.5em; letter-spacing:0; }

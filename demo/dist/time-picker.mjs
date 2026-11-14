@@ -16,12 +16,28 @@ export function isWithinSchedulingWindow(value, { maxMinutes = MAX_PICKER_MINUTE
   return Number.isFinite(minutes) && minutes >= MIN_PICKER_MINUTES && minutes <= maxMinutes;
 }
 
+/** Manual entry accepts HH:MM (also one-digit hours/minutes); invalid or
+ * out-of-window values return null so the caller can show a clear error. */
+export function parsePickerInput(value, { maxMinutes = MAX_PICKER_MINUTES } = {}) {
+  if (typeof value !== 'string') return null;
+  const text = value.trim().replace(/：/g, ':');
+  const match = /^(\d{1,2}):(\d{1,2})$/.exec(text);
+  if (!match) return null;
+  const hours = Number(match[1]);
+  const minutesPart = Number(match[2]);
+  if (hours > 23 || minutesPart > 59) return null;
+  const minutes = hours * 60 + minutesPart;
+  return minutes >= MIN_PICKER_MINUTES && minutes <= maxMinutes ? minutes : null;
+}
+
 /** Shared time dialog. Selecting options does not commit until confirmation. */
 export function setupTimePicker() {
   const dialog = document.querySelector('#time-picker-dialog');
   const triggers = [...document.querySelectorAll('[data-time-field]')];
   const hoursGrid = dialog.querySelector('.hours-grid');
   const minutesGrid = dialog.querySelector('.minutes-grid');
+  const inputField = dialog.querySelector('#time-picker-input');
+  const error = dialog.querySelector('#time-picker-error');
   let opener = null;
   let input = null;
   let hour = 8;
@@ -40,7 +56,8 @@ export function setupTimePicker() {
     }
   }
   function render() {
-    dialog.querySelector('#time-picker-value').textContent = toTime(hour * 60 + minute);
+    inputField.value = toTime(hour * 60 + minute);
+    error.textContent = '';
     dialog.querySelectorAll('[data-hour]').forEach(button => {
       const checked = Number(button.dataset.hour) === hour;
       button.setAttribute('aria-checked', String(checked));
@@ -53,18 +70,31 @@ export function setupTimePicker() {
       button.tabIndex = checked ? 0 : -1;
     });
   }
+  function commitManual() {
+    const parsed = parsePickerInput(inputField.value, { maxMinutes });
+    if (parsed === null) {
+      error.textContent = `请输入 08:00–${toTime(maxMinutes)} 之间的时间，例如 09:30。`;
+      return false;
+    }
+    hour = Math.floor(parsed / 60);
+    minute = parsed % 60;
+    render();
+    return true;
+  }
   function open(trigger) {
     opener = trigger;
     input = document.getElementById(trigger.dataset.timeField);
     maxMinutes = trigger.dataset.timeField === 'task-start' ? MAX_START_MINUTES : MAX_PICKER_MINUTES;
-    const rounded = normalizePickerMinutes(input.value, { maxMinutes });
-    hour = Math.floor(rounded / 60);
-    minute = rounded % 60;
+    const parsed = parsePickerInput(input.value, { maxMinutes });
+    const chosen = parsed ?? normalizePickerMinutes(input.value, { maxMinutes });
+    hour = Math.floor(chosen / 60);
+    minute = chosen % 60;
     dialog.querySelector('#time-picker-title').textContent = trigger.dataset.timeLabel;
     triggers.forEach(button => button.setAttribute('aria-expanded', String(button === trigger)));
     render();
     dialog.showModal();
-    hoursGrid.querySelector('[aria-checked="true"]').focus({ preventScroll: true });
+    inputField.focus({ preventScroll: true });
+    if (typeof inputField.select === 'function') inputField.select();
   }
   function constrainMinute() {
     const available = pickerMinutesForHour(hour, { maxMinutes });
@@ -96,8 +126,17 @@ export function setupTimePicker() {
   }
   bindGrid(hoursGrid, 'hour');
   bindGrid(minutesGrid, 'minute');
+  inputField.addEventListener('input', () => { error.textContent = ''; });
+  inputField.addEventListener('change', () => commitManual());
+  inputField.addEventListener('blur', () => commitManual());
+  inputField.addEventListener('keydown', event => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    commitManual();
+  });
   triggers.forEach(trigger => trigger.addEventListener('click', () => open(trigger)));
   dialog.querySelector('#confirm-time').addEventListener('click', () => {
+    if (!commitManual()) return;
     input.value = toTime(hour * 60 + minute);
     input.dispatchEvent(new Event('input', { bubbles: true }));
     input.dispatchEvent(new Event('change', { bubbles: true }));

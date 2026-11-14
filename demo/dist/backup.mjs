@@ -6,6 +6,7 @@ import { readEmbeddedAudio } from './audio-format.mjs';
 
 export const MAX_BACKUP_BYTES = 16 * 1024 * 1024;
 const MAX_RECORDING_BYTES = 1024 * 1024;
+const MAX_NOTE_LENGTH = 300;
 const SCENE_KEYS = SCENES.map(scene => scene.key);
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_TIMESTAMP = Date.UTC(10000, 0, 1) - 1;
@@ -178,8 +179,19 @@ function session(value, allTasks) {
   return clean;
 }
 
+function notes(value) {
+  const ids = new Set();
+  return list(value, 2000).map(note => {
+    record(note, ['id', 'date', 'text']);
+    const clean = { id: text(note.id, 200), date: calendarDate(note.date), text: text(note.text, MAX_NOTE_LENGTH) };
+    if (ids.has(clean.id)) fail('备份中有重复记事，未恢复任何数据。');
+    ids.add(clean.id);
+    return clean;
+  });
+}
+
 function validateState(value) {
-  record(value, ['version', 'localUseVersion', 'tasks', 'selectedDate', 'settings', 'history', 'session', 'notified', 'clock']);
+  record(value, ['version', 'localUseVersion', 'tasks', 'selectedDate', 'settings', 'history', 'notes', 'session', 'notified', 'clock']);
   if (value.version !== 1 || (value.localUseVersion !== undefined && value.localUseVersion !== 1)) fail('这个备份版本暂不支持，请使用对应版本的作业时钟。');
   const clean = {
     version: 1,
@@ -188,6 +200,7 @@ function validateState(value) {
     selectedDate: calendarDate(value.selectedDate),
     settings: settings(value.settings),
     history: history(value.history),
+    notes: notes(value.notes ?? []),
     notified: list(value.notified ?? [], 100000).map(item => text(item, 300)),
     clock: clock(value.clock),
     session: null,

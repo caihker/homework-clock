@@ -17,3 +17,12 @@ test('closing settings asks before discarding an unsaved draft', () => {
   assert.match(app, /dialog\?\.id==='settings-dialog'\)requestSettingsClose\(\)/);
   assert.match(app, /settings-dialog'\)\.addEventListener\('cancel'/);
 });
+
+test('the day timeline offers free-text notes without a time window', () => {
+  assert.match(html, /id="notes-list"/);
+  assert.match(html, /id="add-note"/);
+  assert.match(html, /id="note-dialog"/);
+  assert.match(html, /maxlength="300"/);
+  assert.match(app, /function renderNotes\(\)/);
+  assert.match(app, /state\.notes=\[\.\.\.\(state\.notes\|\|\[\]\)/);
+});

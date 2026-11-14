@@ -7,6 +7,7 @@ export const STATE_KEY = 'homework-clock-demo-v1';
 export const STATE_VERSION = 1;
 /** The last unreadable snapshot is kept here so it can still be exported. */
 export const RECOVERY_KEY = 'homework-clock-demo-v1-recovery';
+export const NOTE_MAX_LENGTH = 300;
 
 const types = new Set(TASK_TYPES);
 const record = value => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -27,6 +28,13 @@ export function classifyStoredState(raw) {
   if (!Array.isArray(value.tasks)) return { status: 'invalid', reason: 'tasks' };
   if (!record(value.settings)) return { status: 'invalid', reason: 'settings' };
   return { status: 'ok', value };
+}
+
+/** A dated note has no time window; only its date and text are required. */
+export function isStoredNoteValid(note) {
+  if (!record(note) || typeof note.id !== 'string' || !note.id.trim()) return false;
+  if (typeof note.date !== 'string' || !Number.isFinite(dateAtTime(note.date).getTime())) return false;
+  return typeof note.text === 'string' && note.text.trim().length > 0 && note.text.length <= NOTE_MAX_LENGTH;
 }
 
 /** A task is readable only when it is complete enough to show and time. */
@@ -57,6 +65,12 @@ export function normalizeStoredState(value, { defaults = {}, today } = {}) {
   const history = (Array.isArray(value.history) ? value.history : [])
     .filter(entry => record(entry) && Number.isFinite(entry.ms) && entry.ms >= 0);
   const notified = pruneNotified(value.notified, today);
+  let droppedNotes = 0;
+  const notes = (Array.isArray(value.notes) ? value.notes : []).filter(note => {
+    if (isStoredNoteValid(note)) return true;
+    droppedNotes += 1;
+    return false;
+  });
   let selectedDate = today;
   if (Number.isFinite(dateAtTime(value.selectedDate).getTime())) selectedDate = value.selectedDate;
   const session = record(value.session) ? value.session : null;
@@ -72,12 +86,14 @@ export function normalizeStoredState(value, { defaults = {}, today } = {}) {
       settings,
       selectedDate,
       history,
+      notes,
       session,
       notified,
       clock,
     },
     droppedTasks,
     droppedHistory: (Array.isArray(value.history) ? value.history.length : 0) - history.length,
+    droppedNotes,
   };
 }
 

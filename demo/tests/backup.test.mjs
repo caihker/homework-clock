@@ -15,6 +15,7 @@ const fixture = () => ({
   selectedDate: task.date,
   settings: { sound: true, pet: true, code: '小皮开工了', message: '先做一道！', voice: 'data:audio/mp4;codecs=mp4a.40.2;base64,YXVkaW8=' },
   history: [{ id: 'earlier', taskId: 'deleted-task', date: task.date, type: 'study', ms: 15 * minute }],
+  notes: [],
   session: null,
   clock: { mode: 'real' },
   notified: ['chinese:10:00:12:00:start'],
@@ -273,4 +274,30 @@ test('companion selection survives a backup round trip', () => {
   const original = fixture();
   original.settings.companion = 'solid';
   assert.equal(parseBackup(createBackup(original)).settings.companion, 'solid');
+});
+
+test('dated notes without a time window survive a backup round trip', () => {
+  const original = fixture();
+  original.notes = [
+    { id: 'note-a', date: task.date, text: '明天带数学卷子' },
+    { id: 'note-b', date: task.date, text: 'Line one\nLine two' },
+  ];
+  const restored = parseBackup(createBackup(original, at(11)));
+  assert.deepEqual(restored.notes, original.notes);
+  original.notes[0].text = 'changed';
+  assert.equal(restored.notes[0].text, '明天带数学卷子');
+});
+
+test('invalid or duplicate notes reject the whole backup', () => {
+  for (const notes of [
+    [{ id: 'a', date: task.date, text: '' }],
+    [{ id: 'a', date: '2026-02-30', text: 'bad date' }],
+    [{ id: 'a', date: task.date, text: 'x'.repeat(301) }],
+    [{ id: 'a', date: task.date, text: 'one' }, { id: 'a', date: task.date, text: 'two' }],
+    [{ id: 'a', date: task.date, text: 'ok', extra: true }],
+  ]) {
+    const original = fixture();
+    original.notes = notes;
+    assert.throws(() => createBackup(original), /备份/);
+  }
 });

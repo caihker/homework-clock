@@ -149,3 +149,24 @@ test('recovery export fails closed when nothing can be exported', () => {
   assert.equal(chooseRecoveryExport({ recoveryRaw: null, originalRaw: null, serializedState: '' }), null);
   assert.equal(chooseRecoveryExport({ recoveryRaw: 42, originalRaw: undefined, serializedState: null }), null);
 });
+
+test('dated notes are normalized, filtered and counted without touching tasks', () => {
+  const { state, droppedNotes } = normalize(snapshot({
+    notes: [
+      { id: 'ok', date: TODAY, text: '带卷子' },
+      { id: 'blank', date: TODAY, text: '   ' },
+      { id: 'bad-date', date: '2026-02-30', text: 'x' },
+      null,
+      { id: 'long', date: TODAY, text: 'x'.repeat(301) },
+    ],
+  }));
+  assert.deepEqual(state.notes, [{ id: 'ok', date: TODAY, text: '带卷子' }]);
+  assert.equal(droppedNotes, 4);
+  assert.equal(state.tasks.length, 1);
+});
+
+test('notes default to an empty list for older snapshots', () => {
+  const { state, droppedNotes } = normalize(snapshot());
+  assert.deepEqual(state.notes, []);
+  assert.equal(droppedNotes, 0);
+});

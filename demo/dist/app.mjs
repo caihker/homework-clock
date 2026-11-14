@@ -59,7 +59,7 @@ const setCategoryIcons = () => $$('[data-category]').forEach(el => { el.innerHTM
 const timePicker = setupTimePicker();
 const defaults = { sound: true, pet: true, companion: 'original', code: '小皮开工了', message: '先做一道，进入状态就容易啦。', voice: null };
 const actualToday = dateKey(new Date());
-const sampleState = () => ({ version: 1, localUseVersion: 1, tasks: createSampleTasks(actualToday), selectedDate: actualToday, settings: { ...defaults }, history: [], session: null, notified: [], clock: { mode: 'real' } });
+const sampleState = () => ({ version: 1, localUseVersion: 1, tasks: createSampleTasks(actualToday), selectedDate: actualToday, settings: { ...defaults }, history: [], notes: [], session: null, notified: [], clock: { mode: 'real' } });
 let state;
 let storageOK = true;
 let lastStoredRaw = null;
@@ -84,9 +84,9 @@ const stored = storageOK ? classifyStoredState(lastStoredRaw) : { status: 'empty
 if (stored.status === 'ok') {
   const normalized = normalizeStoredState(stored.value, { defaults, today: actualToday });
   state = normalized.state;
-  if (normalized.droppedTasks || normalized.droppedHistory) {
+  if (normalized.droppedTasks || normalized.droppedHistory || normalized.droppedNotes) {
     originalRaw = lastStoredRaw;
-    loadIssue = { status: 'partial', dropped: normalized.droppedTasks + normalized.droppedHistory, preserved: false };
+    loadIssue = { status: 'partial', dropped: normalized.droppedTasks + normalized.droppedHistory + normalized.droppedNotes, preserved: false };
     recoveryRaw = preserveRecovery(lastStoredRaw);
     if (recoveryRaw) loadIssue.preserved = true;
     // If the copy cannot be written, keep the original bytes safe by refusing
@@ -104,6 +104,7 @@ if (stored.status === 'ok') {
   recoveryRaw = preserveRecovery(lastStoredRaw);
   state = sampleState();
 }
+state.notes ||= [];
 let filter = 'all';
 let currentId = null;
 let nextTaskId = null;
@@ -406,6 +407,7 @@ function render() {
     $('#next-task-time').textContent=`${upcoming.start} · ${when}`;
   }
   renderTimeline(tasks,current,nextTaskId);
+  renderNotes();
   updateClocks();
 }
 function renderTimeline(tasks,current,nextId) {
@@ -613,6 +615,45 @@ $('#timeline').onclick=e=>{
   const edit=e.target.closest('[data-edit]'),complete=e.target.closest('[data-complete]'),start=e.target.closest('[data-start]');
   if(start)startTask(getTask(start.dataset.start));else if(edit)openTask(edit.dataset.edit);else if(complete){const t=getTask(complete.dataset.complete);t.completed?undoComplete(t):completeTask(t);}else if(e.target.closest('[data-add]'))openTask();
 };
+function dayNotes(){return (state.notes||[]).filter(note=>note.date===state.selectedDate);}
+function renderNotes(){
+  const notes=dayNotes(),list=$('#notes-list');
+  if(!notes.length){list.innerHTML='<li class="note-empty">今天还没有记事</li>';return;}
+  list.innerHTML=notes.map(note=>`<li class="note-item"><button type="button" class="note-text" data-note-edit="${escape(note.id)}">${escape(note.text)}</button><button type="button" class="note-delete" data-note-delete="${escape(note.id)}" aria-label="删除记事">${icon('trash')}</button></li>`).join('');
+}
+function openNote(id){
+  const note=(state.notes||[]).find(item=>item.id===id);
+  $('#note-id').value=note?.id||'';
+  $('#note-text').value=note?.text||'';
+  $('#note-error').textContent='';
+  $('#note-dialog-title').textContent=note?'编辑记事':'添加记事';
+  $('#delete-note').hidden=!note;
+  showDialog('#note-dialog');
+  setTimeout(()=>$('#note-text').focus(),0);
+}
+function deleteNote(id){
+  if(!(state.notes||[]).some(note=>note.id===id))return;
+  confirmAction('删除这条记事？','删除后不能恢复。',()=>{
+    state.notes=state.notes.filter(note=>note.id!==id);persist();closeDialog($('#note-dialog'));render();toast(savedNotice('记事已删除。'));
+  });
+}
+function saveNote(){
+  const text=$('#note-text').value.trim();
+  if(!text){$('#note-error').textContent='写点什么再保存吧。';return;}
+  if(text.length>300){$('#note-error').textContent='记事最多 300 个字。';return;}
+  const id=$('#note-id').value;
+  if(id)state.notes=(state.notes||[]).map(note=>note.id===id?{...note,text}:note);
+  else state.notes=[...(state.notes||[]),{id:crypto.randomUUID(),date:state.selectedDate,text}];
+  persist();closeDialog($('#note-dialog'));render();toast(savedNotice(id?'记事已更新。':'记事已保存。'));
+}
+$('#add-note').onclick=()=>openNote();
+$('#notes-list').onclick=event=>{
+  const edit=event.target.closest('[data-note-edit]'),del=event.target.closest('[data-note-delete]');
+  if(edit)openNote(edit.dataset.noteEdit);
+  else if(del)deleteNote(del.dataset.noteDelete);
+};
+$('#save-note').onclick=saveNote;
+$('#delete-note').onclick=()=>deleteNote($('#note-id').value);
 function completeTask(t) {
   if(!t)return;const was=t.completed;if(state.session?.taskId===t.id)stopSession();t.completed=true;celebration={date:t.date,until:Date.now()+5000};
   closeDialog($('#focus-dialog'));closeDialog($('#finish-dialog'));persist();render();
@@ -666,7 +707,9 @@ $('#confirm-copy').onclick=()=>{
   if(date===state.selectedDate){$('#copy-error').textContent='请选择另一天，避免重复安排。';return;}
   const copies=dayTasks().map(t=>({...t,id:crypto.randomUUID(),date,completed:false}));
   for(const t of copies){const error=validateTask(t,state.tasks);if(error){$('#copy-error').textContent=`${date} 已有时间冲突，请换一天或先调整安排。`;return;}}
-  state.tasks.push(...copies);persist();closeDialog($('#copy-dialog'));setDate(date);toast(savedNotice('安排已复制，新的一天慢慢来。'));
+  state.tasks.push(...copies);
+  state.notes.push(...dayNotes().map(note=>({id:crypto.randomUUID(),date,text:note.text})));
+  persist();closeDialog($('#copy-dialog'));setDate(date);toast(savedNotice('安排和记事已复制，新的一天慢慢来。'));
 };
 $('#demo-clock-settings').onclick=()=>showDialog('#clock-dialog');
 function changeClock(value) {
@@ -853,7 +896,7 @@ $('#backup-file').onchange = async event => {
   } catch (error) { if (backupImportIsCurrent(generation)) $('#backup-result').textContent = error.message || '无法读取这份备份，原数据未改变。'; }
   finally { if (generation === backupImportGeneration) setBackupImportBusy(false); }
 };
-$('#reset-demo').onclick=()=>{if(writeBlocked){toast('本机数据待恢复，请先处理首页的恢复提示。');return;}confirmAction('重新体验示例？','当前浏览器中的计划和专注记录会重置，家庭设置会保留。',()=>{const resetDate=dateKey(new Date());state.tasks=createSampleTasks(resetDate);state.history=[];state.session=null;state.notified=[];state.selectedDate=resetDate;state.clock={mode:'demo',simulatedAt:dateAtTime(resetDate,"10:20").getTime(),anchor:Date.now()};lastTick=now().getTime();closeDialog($('#settings-dialog'));closeDialog($('#focus-dialog'));closeDialog($('#finish-dialog'));filter='all';$$('[data-filter]').forEach(b=>b.classList.toggle('active',b.dataset.filter==='all'));persist();render();toast(savedNotice('示例已就绪，开工！'));});};
+$('#reset-demo').onclick=()=>{if(writeBlocked){toast('本机数据待恢复，请先处理首页的恢复提示。');return;}confirmAction('重新体验示例？','当前浏览器中的计划和专注记录会重置，家庭设置会保留。',()=>{const resetDate=dateKey(new Date());state.tasks=createSampleTasks(resetDate);state.history=[];state.notes=[];state.session=null;state.notified=[];state.selectedDate=resetDate;state.clock={mode:'demo',simulatedAt:dateAtTime(resetDate,"10:20").getTime(),anchor:Date.now()};lastTick=now().getTime();closeDialog($('#settings-dialog'));closeDialog($('#focus-dialog'));closeDialog($('#finish-dialog'));filter='all';$$('[data-filter]').forEach(b=>b.classList.toggle('active',b.dataset.filter==='all'));persist();render();toast(savedNotice('示例已就绪，开工！'));});};
 
 function tick({ silent = false } = {}) {
   if (document.hidden||updateLocked) return;
