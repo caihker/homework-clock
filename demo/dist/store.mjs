@@ -142,3 +142,8 @@ export function inspectStorage({ storage, key = STATE_KEY, today, defaults = {},
     loadIssue: { status: stored.status === 'future' ? 'future' : 'invalid', version: stored.version, reason: stored.reason },
   };
 }
+
+/** Notes attached to one calendar day, preserving insertion order. */
+export function notesForDate(notes, date) {
+  return (Array.isArray(notes) ? notes : []).filter(note => note && note.date === date);
+}

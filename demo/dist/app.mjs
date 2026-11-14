@@ -9,54 +9,22 @@ import { TURTLE_LINES, createVoicePlayer } from './voice-pack.mjs?v=1';
 import { createBackup, parseBackup, MAX_BACKUP_BYTES } from './backup.mjs';
 import { selectSceneVoice, countSceneVoices } from './scene-voices.mjs';
 import { createSceneVoiceSettings } from './scene-voice-settings.mjs';
-import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, nowMarkerIndex, shiftSlot } from './plan-view.mjs';
+import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, shiftSlot } from './plan-view.mjs';
 import { collectDueReminders } from './reminder-events.mjs';
 import { createUpdateGuard, hasSettingsDraft } from './update-guard.mjs';
 import { createUpdateSession } from './update-session.mjs';
 import { commitLocalState, readUpdateLock, releaseUpdateLock } from './update-storage.mjs';
-import { STATE_KEY, RECOVERY_KEY, classifyStoredState, normalizeStoredState, pruneNotified, chooseRecoveryExport, inspectStorage } from './store.mjs';
+import { STATE_KEY, RECOVERY_KEY, classifyStoredState, normalizeStoredState, pruneNotified, chooseRecoveryExport, inspectStorage, notesForDate } from './store.mjs';
 import { TASK_TYPE_LABELS, DEFAULT_SETTINGS } from './schema.mjs';
+import { $, $$, icon, escape, categoryIcon, setIcons, setCategoryIcons } from './dom.mjs';
+import { createTimelineView } from './timeline-view.mjs';
 
-const $ = (s) => document.querySelector(s);
-const $$ = (s) => [...document.querySelectorAll(s)];
 const STORE = STATE_KEY;
 const UPDATE_LOCK = 'homework-clock-update-lock-v1';
 // Defer the storage getter until a guarded helper calls it: Safari may deny
 // even accessing localStorage, rather than only failing a write.
 const stateStorage={getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value),removeItem:key=>localStorage.removeItem(key)};
 const TYPES = TASK_TYPE_LABELS;
-const CATEGORY_ICONS = { study:'learning', life:'life', play:'play' };
-const categoryIcon = type => `<img class="category-icon" src="./assets/category-flat-byg/${CATEGORY_ICONS[type] || CATEGORY_ICONS.study}.png" width="64" height="64" alt="" aria-hidden="true" decoding="async" draggable="false">`;
-const paths = {
-  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/>',
-  calendar: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18m-13 4h2m4 0h2m-8 3h2"/>',
-  layers: '<path d="m12 3 10 5-10 5L2 8l10-5Zm-9 9 9 5 9-5M3 17l9 5 9-5"/>',
-  leaf: '<path d="M20 3C8 2 2 8 5 16c6 7 16 0 15-13ZM4 21 15 10"/>',
-  settings: '<path d="m9 4 1-2h4l1 2 3 2 3 1v4l-2 1-1 3 1 3-3 3-3-1-3 1-3 1-3-3 1-3-1-3-2-1V7l3-1 3-2Z"/><circle cx="12" cy="12" r="3"/>',
-  plus: '<path d="M12 5v14M5 12h14"/>',
-  'chevron-down': '<path d="m6 9 6 6 6-6"/>', 'chevron-left': '<path d="m15 5-7 7 7 7"/>', 'chevron-right': '<path d="m9 5 7 7-7 7"/>',
-  'arrow-right': '<path d="M4 12h16m-6-6 6 6-6 6"/>', 'arrow-left': '<path d="M20 12H4m6-6-6 6 6 6"/>',
-  sparkles: '<path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3ZM20 2v4m-2-2h4"/>',
-  play: '<path d="m8 4 12 8-12 8V4Z"/>', pause: '<path d="M8 5v14M16 5v14"/>',
-  expand: '<path d="M8 3H3v5m13-5h5v5M3 16v5h5m8 0h5v-5"/>',
-  volume: '<path d="m11 4-6 5H2v6h3l6 5V4Zm4 4c3 2 3 6 0 8m3-11c5 4 5 10 0 14"/>',
-  'volume-off': '<path d="m11 4-6 5H2v6h3l6 5V4Z"/><path d="m16 9 5 6m0-6-5 6"/>',
-  'check-circle': '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>', check: '<path d="m5 12 4 4L19 6"/>',
-  copy: '<rect x="8" y="8" width="13" height="13" rx="3"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>',
-  x: '<path d="m6 6 12 12M6 18 18 6"/>',
-  book: '<path d="M12 5c-3-2-6-2-10-1v15c4-1 7-1 10 1 3-2 6-2 10-1V4c-4-1-7-1-10 1Zm0 0v15"/>',
-  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 1v2m0 18v2M1 12h2m18 0h2M4 4l2 2m12 12 2 2M4 20l2-2M18 6l2-2"/>',
-  game: '<path d="M7 7h10c4 0 6 12 3 13-2 1-4-3-6-3h-4c-2 0-4 4-6 3C1 19 3 7 7 7Z"/><path d="M7 10v6m-3-3h6m6-1h.1m3 3h.1M10 7V4h4V2"/>',
-  mic: '<rect x="8" y="2" width="8" height="13" rx="4"/><path d="M5 10v2a7 7 0 0 0 14 0v-2m-7 9v3m-4 0h8"/>',
-  trash: '<path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/>',
-  more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
-  download: '<path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/>',
-  upload: '<path d="M12 15V3m-5 5 5-5 5 5M4 16v5h16v-5"/>',
-};
-const icon = (name) => `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || paths.clock}</svg>`;
-const escape = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-const setIcons = () => $$('[data-icon]').forEach(el => { el.innerHTML = icon(el.dataset.icon); });
-const setCategoryIcons = () => $$('[data-category]').forEach(el => { el.innerHTML = categoryIcon(el.dataset.category); });
 const timePicker = setupTimePicker();
 const defaults = DEFAULT_SETTINGS;
 const actualToday = dateKey(new Date());
@@ -356,6 +324,11 @@ function chooseCurrent() {
   const active=state.session&&tasks.find(t=>t.id===state.session.taskId&&!t.completed&&sessionRemainingMs(state.session,t,at)>0);
   return active || tasks.find(t=>!t.completed&&taskStart(t)<=at&&taskEnd(t)>at) || tasks.find(t=>!t.completed&&taskStart(t)>at) || [...tasks].reverse().find(t=>t.type==='study'&&!t.completed&&taskEnd(t)<=at) || null;
 }
+const timelineView = createTimelineView({
+  $, icon, escape, categoryIcon, types: TYPES, toMinutes, durationLabel,
+  taskStart, taskEnd, dateKey, clockText,
+  getState: () => state, getFilter: () => filter, getSelectedDate: () => state.selectedDate, getNow: () => now(),
+});
 function render() {
   const tasks=dayTasks(); const n=now(),at=n.getTime();const current=chooseCurrent(); currentId=current?.id||null;
   $('#day-picker').value=state.selectedDate;
@@ -400,32 +373,9 @@ function render() {
     const when=hours?`${hours} 小时${rest?` ${rest} 分钟`:''}后`:`${minutes} 分钟后`;
     $('#next-task-time').textContent=`${upcoming.start} · ${when}`;
   }
-  renderTimeline(tasks,current,nextTaskId);
-  renderNotes();
+  timelineView.renderTimeline(tasks,current,nextTaskId);
+  timelineView.renderNotes();
   updateClocks();
-}
-function renderTimeline(tasks,current,nextId) {
-  const visible=tasks.filter(t=>filter==='all'||t.type===filter);
-  if(!visible.length) {
-    const hasTasks=tasks.length>0;
-    $('#timeline').innerHTML=`<div class="empty-state">${state.settings.pet?'<img class="empty-mascot" src="./assets/turtle-mascot.png" alt="小乌龟陪你安排新的一天">':'<div class="empty-icon">'+icon('sun')+'</div>'}<h3>${hasTasks?'这里还空着':'今天还没有安排'}</h3><button class="button secondary" data-add>${hasTasks?'加一项':'添加第一项'}</button></div>`;
-    return;
-  }
-  const at=now().getTime();
-  const showNow=filter==='all'&&state.selectedDate===dateKey(new Date(at));
-  const markerIndex=showNow?nowMarkerIndex(tasks,at):-1;
-  const nowRow=`<div class="now-row" role="presentation"><span class="now-line"></span><span class="now-label">现在 ${clockText(new Date(at))}</span></div>`;
-  const nextToStart=tasks.find(t=>!t.completed&&t.date===dateKey(new Date(at))&&taskStart(t)>at&&t.id!==state.session?.taskId);
-  $('#timeline').innerHTML=visible.map((t,i)=>{
-    const running=state.session?.taskId===t.id;
-    const live=!t.completed&&t.id===current?.id&&(running||taskStart(t)<=at&&taskEnd(t)>at);
-    const nextMark=t.id===nextId;
-    const status=t.completed?'已完成':running?(state.session.paused?'休息中':'计时中'):taskEnd(t)<=at&&t.type==='study'?'待确认':(nextMark?'下一项':'');
-    const manualStart=t.id===nextToStart?.id&&t.id!==current?.id?`<button class="task-start" data-start="${escape(t.id)}" aria-label="现在开始：${escape(t.title)}" title="现在开始">${icon('play')}</button>`:'';
-    const item=`<article class="timeline-item ${live?'is-current':''} ${t.completed?'is-completed':''}" data-type="${t.type}"${t.id===current?.id?' aria-current="step"':''}><div class="time-column"><span class="start-time">${t.start}</span><span class="end-time">${t.end}</span></div><div class="timeline-rail"><span class="timeline-dot">${categoryIcon(t.type)}</span></div><button class="task-content" data-edit="${escape(t.id)}" aria-label="编辑${escape(t.title)}"><span class="task-meta"><span class="type-label">${TYPES[t.type]}</span>${status?`<span class="task-status ${live?'live':''} ${nextMark&&!live?'next':''}">${status}</span>`:''}</span><span class="task-name">${escape(t.title)}</span></button>${manualStart}<button class="task-check ${t.completed?'checked':''}" data-complete="${escape(t.id)}" aria-label="${t.completed?'撤销完成':'标记完成'}：${escape(t.title)}">${t.completed?icon('check'):''}</button><button class="task-edit" data-edit="${escape(t.id)}" aria-label="编辑${escape(t.title)}">${icon('more')}</button></article>`;
-    const next=visible[i+1],gap=next?toMinutes(next.start)-toMinutes(t.end):0;
-    return (showNow&&i===markerIndex?nowRow:'')+item+(filter==='all'&&gap>0?`<div class="gap-row"><span class="gap-line"></span><span class="gap-label">空闲 ${durationLabel(gap)}</span></div>`:'');
-  }).join('')+(showNow&&markerIndex>=visible.length?nowRow:'');
 }
 let celebration = null;
 const turtleTrips = new Map();
@@ -609,12 +559,7 @@ $('#timeline').onclick=e=>{
   const edit=e.target.closest('[data-edit]'),complete=e.target.closest('[data-complete]'),start=e.target.closest('[data-start]');
   if(start)startTask(getTask(start.dataset.start));else if(edit)openTask(edit.dataset.edit);else if(complete){const t=getTask(complete.dataset.complete);t.completed?undoComplete(t):completeTask(t);}else if(e.target.closest('[data-add]'))openTask();
 };
-function dayNotes(){return (state.notes||[]).filter(note=>note.date===state.selectedDate);}
-function renderNotes(){
-  const notes=dayNotes(),list=$('#notes-list');
-  if(!notes.length){list.innerHTML='<li class="note-empty">今天还没有记事</li>';return;}
-  list.innerHTML=notes.map(note=>`<li class="note-item"><button type="button" class="note-text" data-note-edit="${escape(note.id)}">${escape(note.text)}</button><button type="button" class="note-delete" data-note-delete="${escape(note.id)}" aria-label="删除记事">${icon('trash')}</button></li>`).join('');
-}
+function dayNotes(){return notesForDate(state.notes,state.selectedDate);}
 function openNote(id){
   const note=(state.notes||[]).find(item=>item.id===id);
   $('#note-id').value=note?.id||'';

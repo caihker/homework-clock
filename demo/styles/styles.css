@@ -7,6 +7,15 @@
   --purple: #dce9be;
   --coral: #ffab97;
   --green: #97c6a1;
+  --teal: #227a83;
+  --teal-soft: #eef8f7;
+  --teal-line: #dce5e8;
+  --blue-ink: #2477c3;
+  --track: #ebe7df;
+  --amber: #ffd66d;
+  --danger: #ffb096;
+  --shadow-card: 5px 5px 0 var(--ink);
+  --shadow-control: 3px 3px 0 var(--ink);
   --muted: #66636a;
   --line: #ddd9cf;
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
@@ -49,16 +58,16 @@ svg.icon { width: 20px; height: 20px; flex: 0 0 auto; vertical-align: middle; st
 .icon-button:hover { background: #24232a0a; }
 .settings-button { border: 1.5px solid var(--ink); background: var(--paper); }
 .button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 44px; padding: 10px 18px; border: 2px solid var(--ink); border-radius: 10px; background: #fff; font-size: 14px; font-weight: 800; transition: transform .15s, box-shadow .15s; }
-.button:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--ink); }
+.button:hover { transform: translate(-1px, -1px); box-shadow: var(--shadow-control); }
 .button:active { transform: translate(1px, 1px); box-shadow: none; }
-.button.primary { background: var(--purple); box-shadow: 3px 3px 0 var(--ink); }
+.button.primary { background: var(--purple); box-shadow: var(--shadow-control); }
 .button.primary:hover { box-shadow: 4px 4px 0 var(--ink); }
 .button.secondary { background: #fff; }
 .button.small { min-height: 38px; font-size: 12px; padding: 7px 12px; }
 .add-button { min-height: 40px; padding: 7px 14px; }
 main { max-width: 1240px; margin: 0 auto; padding: 18px 40px 22px; }
 .dashboard { display: grid; grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr); gap: 28px; align-items: stretch; }
-.current-card, .schedule-panel { min-width: 0; border: 2.5px solid var(--ink); box-shadow: 5px 5px 0 var(--ink); }
+.current-card, .schedule-panel { min-width: 0; border: 2.5px solid var(--ink); box-shadow: var(--shadow-card); }
 .current-card { position: relative; display: flex; flex-direction: column; padding: 26px 28px 18px; border-radius: 22px 19px 23px 19px; background: var(--yellow); overflow: hidden; }
 .current-card::before { content: ""; position: absolute; right: -12px; top: 65px; width: 78px; height: 78px; pointer-events: none; opacity: .18; background-image: radial-gradient(var(--ink) 1px, transparent 1px); background-size: 6px 6px; transform: rotate(-12deg); }
 .current-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; position: relative; }
@@ -75,7 +84,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 18px 40px 22px; }
 .big-timer small { font-size: .45em; letter-spacing: -1px; margin-left: 3px; }
 .progress-track { height: 8px; width: 100%; border: 1.5px solid var(--ink); border-radius: 9px; background: #fffdf5a6; overflow: hidden; }
 .progress-track > span { display: block; height: 100%; width: 0; background: var(--ink); border-radius: 8px; transition: width 1s linear; }
-.start-button { width: 100%; min-height: 52px; margin-top: 23px; background: #fffdf5; box-shadow: 3px 3px 0 var(--ink); border-width: 2.5px; border-radius: 11px 9px 12px 9px; font-size: 16px; }
+.start-button { width: 100%; min-height: 52px; margin-top: 23px; background: #fffdf5; box-shadow: var(--shadow-control); border-width: 2.5px; border-radius: 11px 9px 12px 9px; font-size: 16px; }
 .start-button > .icon:first-child { width: 18px; height: 18px; }
 .button-arrow { margin-left: auto; }
 .button-arrow svg.icon { width: 20px; height: 20px; }
@@ -230,7 +239,7 @@ summary::-webkit-details-marker { display: none; }
 .focus-time { margin-top: 22px; padding: 0 26px 3px; background: var(--yellow); border: 3px solid var(--ink); border-radius: 24px 18px 26px 19px; box-shadow: 6px 6px 0 var(--ink); font-family: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", -apple-system, BlinkMacSystemFont, sans-serif; font-size: clamp(65px, 11vw, 143px); font-weight: 850; line-height: 1.25; letter-spacing: -5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .focus-end { font-size: 13px; font-weight: 650; color: var(--muted); margin-top: 20px; }
 .focus-controls { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 16px; margin-top: 27px; }
-.focus-controls .button { min-width: 154px; min-height: 47px; font-size: 14px; box-shadow: 3px 3px 0 var(--ink); }
+.focus-controls .button { min-width: 154px; min-height: 47px; font-size: 14px; box-shadow: var(--shadow-control); }
 .focus-pause { background: #fff; }
 .focus-controls .cream { background: var(--purple); }
 .focus-pet { margin-top: 23px; }
@@ -353,7 +362,7 @@ dialog .toast { left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px))
   .gap-label { font-size: 11px; }
   .schedule-bottom { margin-top: 9px; }
   .save-state { margin-top: 13px; font-size: 9px; }
-  .modal { padding: 22px 18px; max-height: calc(100dvh - 30px); border-width: 2px; box-shadow: 5px 5px 0 var(--ink); }
+  .modal { padding: 22px 18px; max-height: calc(100dvh - 30px); border-width: 2px; box-shadow: var(--shadow-card); }
   .modal-heading { margin-bottom: 22px; }
   .modal-heading h2 { font-size: 22px; }
   .field input, .field textarea { font-size: 16px; }
