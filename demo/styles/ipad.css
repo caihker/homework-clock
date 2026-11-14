@@ -44,6 +44,9 @@
   .repeat-toggle input { width:24px; height:24px; }
   .repeat-row select { min-height:48px; font-size:var(--tablet-body); }
   .repeat-hint { font-size:var(--tablet-small); }
+  .series-scope { font-size:var(--tablet-body); gap:12px; }
+  .series-scope input { width:24px; height:24px; }
+  #delete-series { font-size:var(--tablet-body); }
   .turtle-words { margin-top:18px; padding:14px 16px; }
   .turtle-words-heading h3 { font-size:var(--tablet-body); gap:8px; }
   .turtle-words-heading h3 svg.icon { width:20px; height:20px; }

@@ -590,6 +590,10 @@ dialog .toast { left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px))
 .repeat-row select { margin-left:auto; min-height:32px; padding:2px 8px; border:1.5px solid var(--line-strong); border-radius:var(--radius-8); background:var(--white); color:var(--ink); font-size:var(--font-13); }
 .repeat-hint { margin:-4px 0 12px; color:var(--muted); font-size:var(--font-12); line-height:1.5; }
 
+.series-scope { display:flex; align-items:center; gap:8px; margin:-2px 0 12px; font-size:var(--font-13); color:var(--ink); }
+.series-scope input { width:18px; height:18px; accent-color:var(--teal); }
+#delete-series { margin:0 0 10px; font-size:var(--font-12); }
+
 /* time-picker.css */
 /* The time picker shares the comic palette with the rest of the app. */
 .time-trigger {
@@ -762,6 +766,9 @@ dialog .toast { left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px))
   .repeat-toggle input { width:24px; height:24px; }
   .repeat-row select { min-height:48px; font-size:var(--tablet-body); }
   .repeat-hint { font-size:var(--tablet-small); }
+  .series-scope { font-size:var(--tablet-body); gap:12px; }
+  .series-scope input { width:24px; height:24px; }
+  #delete-series { font-size:var(--tablet-body); }
   .turtle-words { margin-top:18px; padding:14px 16px; }
   .turtle-words-heading h3 { font-size:var(--tablet-body); gap:8px; }
   .turtle-words-heading h3 svg.icon { width:20px; height:20px; }

@@ -104,3 +104,10 @@ export function weeklyDates(startDate, weeks) {
   }
   return dates;
 }
+
+/** Occurrences of one weekly series at or after a date, oldest first. */
+export function seriesFrom(tasks, seriesId, fromDate) {
+  return (Array.isArray(tasks) ? tasks : [])
+    .filter(task => task && task.seriesId === seriesId && task.date >= fromDate)
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+}

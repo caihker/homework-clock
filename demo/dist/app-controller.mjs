@@ -7,7 +7,7 @@ import { TURTLE_LINES, createVoicePlayer } from './voice-pack.mjs?v=1';
 import { createBackup, parseBackup, MAX_BACKUP_BYTES } from './backup.mjs';
 import { selectSceneVoice, countSceneVoices } from './scene-voices.mjs';
 import { createSceneVoiceSettings } from './scene-voice-settings.mjs';
-import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, shiftSlot, slotFromDuration, weeklyDates } from './plan-view.mjs';
+import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, shiftSlot, slotFromDuration, weeklyDates, seriesFrom } from './plan-view.mjs';
 import { collectDueReminders } from './reminder-events.mjs';
 import { createUpdateGuard, hasSettingsDraft } from './update-guard.mjs';
 import { createUpdateSession } from './update-session.mjs';
@@ -419,7 +419,10 @@ function openTask(id,template) {
   $('#repeat-row').hidden=!!t;
   $('#repeat-weekly').checked=false;
   $('#repeat-hint').hidden=!t?.seriesId;
-  if(t?.seriesId)$('#repeat-hint').textContent='这是每周重复中的一次；保存或删除只影响这一次。';
+  $('#series-scope').hidden=!t?.seriesId;
+  $('#delete-series').hidden=!t?.seriesId;
+  $('#series-future').checked=false;
+  if(t?.seriesId)$('#repeat-hint').textContent='这是每周重复中的一次；默认只改这一次，可勾选同时修改以后。';
   $('#task-dialog-title').textContent=t?'编辑安排':'添加安排';$('#delete-task').hidden=!t;
   renderCustomTemplates();showDialog('#task-dialog');if(template)applyTemplate(template);
 }
@@ -497,6 +500,26 @@ $('#task-form').onsubmit=e=>{
     toast(savedNotice(storageOK?`已安排未来 ${repeatWeeks} 周，共 ${repeatWeeks} 次。`:'当前更改暂未保存，请检查浏览器存储。'));
     return;
   }
+  if(old?.seriesId&&$('#series-future').checked){
+    const later=seriesFrom(state.tasks,old.seriesId,old.date).filter(item=>item.id!==old.id&&!item.completed);
+    const updated=later.map(item=>({...item,title,start:task.start,end:task.end,type,subject:task.subject}));
+    const ids=new Set([old.id,...later.map(item=>item.id)]);
+    const trial=state.tasks.filter(item=>!ids.has(item.id));
+    for(const instance of [task,...updated]){
+      const issue=validateTask(instance,trial);
+      if(issue){$('#form-error').textContent=`${instance.date}：${issue}`;return;}
+      if(!isWithinSchedulingWindow(instance.start,{maxMinutes:MAX_START_MINUTES})||!isWithinSchedulingWindow(instance.end)){
+        $('#form-error').textContent=`${instance.date} 的时间不在可选范围内。`;return;
+      }
+      trial.push(instance);
+    }
+    if(state.session?.taskId&&ids.has(state.session.taskId)&&(old.start!==task.start||old.end!==task.end||old.type!==task.type))stopSession();
+    const updates=new Map(updated.map(item=>[item.id,item]));
+    state.tasks=state.tasks.map(item=>item.id===old.id?task:updates.get(item.id)||item);
+    persist();closeDialog($('#task-dialog'));render();
+    toast(savedNotice(storageOK?`已更新这一次及以后 ${updated.length+1} 次重复。`:'当前更改暂未保存，请检查浏览器存储。'));
+    return;
+  }
   if(state.session?.taskId===task.id&&(old.start!==task.start||old.end!==task.end||old.type!==task.type))stopSession();
   if(old)state.tasks=state.tasks.map(t=>t.id===old.id?task:t);else state.tasks.push(task);
   persist();closeDialog($('#task-dialog'));render();toast(storageOK?(old?'安排已更新，后面的时间保持不变。':'新安排已保存，慢慢来就好。'):'当前更改暂未保存，请检查浏览器存储。');
@@ -506,6 +529,17 @@ $('#delete-task').onclick=()=>{
   confirmAction('删除这项安排？',t.seriesId?`“${t.title}”是每周重复中的一次，只删除这一天，其他重复保留。`:`“${t.title}”将从这一天移除，其他安排保持原时间。`,()=>{
     if(state.session?.taskId===t.id)stopSession();state.tasks=state.tasks.filter(x=>x.id!==t.id);persist();closeDialog($('#task-dialog'));render();
     toast(savedNotice('安排已删除。'),()=>{if(validateTask(t,state.tasks)){toast('原时间已有其他安排，请重新添加。');return;}state.tasks.push(t);persist();render();});
+  });
+};
+$('#delete-series').onclick=()=>{
+  const t=getTask($('#task-id').value);if(!t?.seriesId)return;
+  const members=seriesFrom(state.tasks,t.seriesId,t.date);
+  if(!members.length)return;
+  confirmAction('删除以后的所有重复？',`将删除“${t.title}”从 ${t.date} 起的 ${members.length} 次安排；之前的安排和记录保留。`,()=>{
+    if(state.session&&members.some(item=>item.id===state.session.taskId))stopSession();
+    state.tasks=state.tasks.filter(item=>!(item.seriesId===t.seriesId&&item.date>=t.date));
+    persist();closeDialog($('#task-dialog'));render();
+    toast(savedNotice(`已删除以后 ${members.length} 次重复。`),()=>{state.tasks.push(...members);persist();render();});
   });
 };
 $('#template-chips').onclick=e=>{const b=e.target.closest('[data-template]');if(b)applyTemplate(b.dataset.template);};

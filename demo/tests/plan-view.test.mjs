@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { dateAtTime } from '../dist/core.mjs';
 import { createSession, pauseSession, resumeSession } from '../dist/session-timer.mjs';
-import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, nowMarkerIndex, shiftSlot, slotFromDuration, weeklyDates } from '../dist/plan-view.mjs';
+import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, nowMarkerIndex, shiftSlot, slotFromDuration, weeklyDates, seriesFrom } from '../dist/plan-view.mjs';
 
 const task = { id: 'math', date: '2026-11-01', title: '数学试卷', start: '10:00', end: '12:00', type: 'study' };
 const at = time => dateAtTime(task.date, time).getTime();
@@ -126,4 +126,18 @@ test('weeklyDates keeps the same weekday for the requested number of weeks', () 
   assert.deepEqual(weeklyDates('2026-02-30', 4), []);
   assert.deepEqual(weeklyDates('2026-11-02', 0), []);
   assert.deepEqual(weeklyDates('2026-11-02', 53), []);
+});
+
+test('seriesFrom returns only that series at or after the chosen date, sorted', () => {
+  const tasks = [
+    { id: 'c', seriesId: 's1', date: '2026-11-16' },
+    { id: 'a', seriesId: 's1', date: '2026-11-02' },
+    { id: 'b', seriesId: 's1', date: '2026-11-09' },
+    { id: 'x', seriesId: 's2', date: '2026-11-09' },
+    { id: 'y', date: '2026-11-09' },
+  ];
+  assert.deepEqual(seriesFrom(tasks, 's1', '2026-11-09').map(t => t.id), ['b', 'c']);
+  assert.deepEqual(seriesFrom(tasks, 's1', '2026-11-01').map(t => t.id), ['a', 'b', 'c']);
+  assert.deepEqual(seriesFrom(tasks, 'missing', '2026-11-01'), []);
+  assert.deepEqual(seriesFrom(null, 's1', '2026-11-01'), []);
 });
