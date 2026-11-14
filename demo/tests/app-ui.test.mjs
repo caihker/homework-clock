@@ -42,3 +42,11 @@ test('a new day opens on today while demo mode keeps its chosen date', () => {
   assert.match(app, /function syncToday\(\)/);
   assert.match(app, /state\.selectedDate<dateKey\(new Date\(\)\)/);
 });
+
+test('day notes live in the current-arrangement card instead of the timeline', () => {
+  const current = html.indexOf('class="current-card"');
+  const notes = html.indexOf('class="notes-panel"');
+  const schedule = html.indexOf('class="schedule-panel"');
+  assert.ok(current >= 0 && schedule > current);
+  assert.ok(notes > current && notes < schedule, 'notes must be inside the left current card');
+});

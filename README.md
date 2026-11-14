@@ -4,7 +4,7 @@
 
 当前采用 PWA 本地自用方式：首次通过 HTTPS 加载并添加到 iPad 主屏，资源准备完成后日常离线使用。提醒只在打开时运行，回来后刷新计时；不开发微信小程序或后台通知。需要 iPadOS 15.4 或更新版本。
 
-完整项目资源纳入统一版本管理，仓库为 [caihker/homework-clock](https://github.com/caihker/homework-clock)，当前基线为 **v1.6.1**。目录范围、提交与发布流程见 [版本管理说明](docs/version-management.md)，各版本变化见 [CHANGELOG](CHANGELOG.md)。推送 `main` 后，GitHub Actions 会把 `demo/dist` 自动发布到 GitHub Pages。
+完整项目资源纳入统一版本管理，仓库为 [caihker/homework-clock](https://github.com/caihker/homework-clock)，当前基线为 **v1.6.2**。目录范围、提交与发布流程见 [版本管理说明](docs/version-management.md)，各版本变化见 [CHANGELOG](CHANGELOG.md)。推送 `main` 后，GitHub Actions 会把 `demo/dist` 自动发布到 GitHub Pages。
 
 ## 运行 Demo
 
@@ -21,6 +21,7 @@ npm start
 
 打开终端显示的本地地址，操作说明见 [Demo 说明](demo/README.md)。
 
+v1.6.2：记事移到左侧「当前安排」下半部分并放大字号（iPad 18px），右侧时间轴更紧凑；273 项检查通过。详见 [本轮验收](docs/verification-v1.6.2.md)。
 v1.6.1：真实模式跨天打开 App 自动显示今天（同一天内的翻页保留），跨午夜自动切回今天；从过去日期新增安排会先回到今天。272 项检查通过。详见 [本轮验收](docs/verification-v1.6.1.md)。
 v1.6.0：阶段 5 第一批：常用计划模板（保存/套用/管理/备份）、导出到系统日历（.ics）、冲突提示指出具体安排；270 项检查通过。详见 [本轮验收](docs/verification-v1.6.0.md)。
 v1.5.4：阶段 4 收尾：`app.mjs` 变为 3 行装配入口，逻辑移入 `app-controller.mjs`；新增 15 项陪伴/计时 fake-DOM 测试；CSS 字号/圆角/颜色/阴影全量 token 化；261 项检查通过。详见 [本轮验收](docs/verification-v1.5.4.md)。

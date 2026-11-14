@@ -541,17 +541,17 @@ dialog .toast { left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px))
 .task-quick-actions .text-button { min-height:30px; }
 
 /* Day notes: free text, no time window, editable from the timeline end. */
-.notes-panel { margin-top:12px; border-top:1px solid var(--line); padding-top:4px; }
+.notes-panel { margin-top:18px; border-top:1.5px dashed rgba(73, 50, 34, .25); padding-top:12px; }
 .notes-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-.notes-heading h3 { font-size: var(--font-13); font-weight:850; }
+.notes-heading h3 { font-size: var(--font-15); font-weight:850; }
 .notes-list { list-style:none; margin:2px 0 0; padding:0; }
-.note-item { display:flex; align-items:flex-start; gap:6px; padding:6px 0; border-bottom:1px dashed var(--line); }
+.note-item { display:flex; align-items:flex-start; gap:8px; padding:7px 0; border-bottom:1px dashed rgba(73, 50, 34, .2); }
 .note-item:last-child { border-bottom:0; }
-.note-text { flex:1; min-width:0; border:0; background:none; padding:2px 0; text-align:left; font-size: var(--font-13); line-height:1.55; white-space:pre-wrap; overflow-wrap:anywhere; color:var(--ink); border-radius: var(--radius-4); }
+.note-text { flex:1; min-width:0; border:0; background:none; padding:3px 0; text-align:left; font-size: var(--font-14); line-height:1.55; white-space:pre-wrap; overflow-wrap:anywhere; color:var(--ink); border-radius: var(--radius-4); }
 .note-text:hover { text-decoration:underline; text-underline-offset:3px; }
 .note-delete { flex:0 0 32px; align-self:center; display:inline-flex; justify-content:center; align-items:center; width:32px; height:32px; border:0; background:none; color:var(--muted); border-radius: var(--radius-6); }
 .note-delete:hover { background:var(--coral); color:var(--ink); }
-.note-empty { color:var(--muted); font-size: var(--font-12); padding:6px 0; }
+.note-empty { color:var(--muted); font-size: var(--font-13); padding:6px 0; }
 #note-text { min-height:88px; resize:vertical; }
 
 /* Reusable plan templates and the calendar export entry share the settings page. */
