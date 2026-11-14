@@ -12,6 +12,8 @@
 
 > 换网址（例如从私有站点迁到 GitHub Pages）不会带走 iPad 本机数据：先在旧站「家庭小设置 → 本机与备份 → 导出备份」，到新地址恢复后再重新「添加到主屏」。
 
+自动发布、首次安装、iPad 更新与迁移步骤见 [GitHub Pages 发布与 iPad 更新](docs/pages-deployment.md)。
+
 ```sh
 cd demo
 npm start
