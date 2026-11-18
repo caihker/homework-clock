@@ -370,3 +370,14 @@ test('weekly series metadata survives a backup round trip', () => {
   const restored = parseBackup(createBackup(original, at(11)));
   assert.equal(restored.tasks[0].seriesId, 'series-a');
 });
+
+test('400 repeat instances retain dates, completion, series membership and saved audio on restore', () => {
+  const state = fixture();
+  state.tasks = Array.from({length: 400}, (_, index) => ({
+    ...task, id: String(index), seriesId: 'math-term', completed: index % 2 === 0,
+    date: new Date(Date.UTC(2026, 10, 1 + index)).toISOString().slice(0, 10),
+  }));
+  const restored = parseBackup(createBackup(state));
+  assert.deepEqual(restored.tasks, state.tasks);
+  assert.ok(restored.settings.voices.start);
+});

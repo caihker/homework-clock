@@ -155,3 +155,20 @@ export function repeatDatesUntil(startDate, weekdays, untilDate, { max = 400 } =
   }
   return [...new Set(dates)].sort();
 }
+
+
+export function weeklySchedule(start, weekdays, {mode, count, until}) {
+  const invalid = error => ({dates: [], error});
+  if (!weekdays.length) return invalid('至少选择一个重复的星期。');
+  if (mode === 'date') {
+    if (!until) return invalid('请选择重复到的日期。');
+    if (until < start) return invalid('结束日期不能早于开始日期。');
+    const dates = repeatDatesUntil(start, weekdays, until);
+    if (dates.length) return {dates, error: ''};
+    const first = repeatDates(start, weekdays, 1)[0];
+    if (first && first > until) return invalid('所选日期范围内没有这个星期的安排。');
+    return invalid('重复日期无效或超过 400 次，请缩短日期范围。');
+  }
+  const dates = repeatDates(start, weekdays, count);
+  return dates.length ? {dates, error: ''} : invalid('请选择有效的重复次数。');
+}
