@@ -93,3 +93,12 @@ test('weekly series can update or delete the current and later occurrences', () 
   assert.match(app, /已更新这一次及以后/);
   assert.match(app, /删除以后的所有重复/);
 });
+
+test('settings exposes recurring-series management without changing task data', () => {
+  assert.match(html, /id="series-manager"/);
+  assert.match(html, /重复安排/);
+  assert.match(app, /function renderSeriesManager\(\)/);
+  assert.match(app, /seriesGroupsNow\(\)/);
+  assert.match(app, /data-series-view/);
+  assert.match(app, /删除整个重复系列/);
+});

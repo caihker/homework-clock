@@ -48,6 +48,9 @@
   .repeat-hint { font-size:var(--tablet-small); }
   .repeat-days { gap:10px; }
   .repeat-days label { min-width:48px; min-height:48px; font-size:var(--tablet-body); }
+  .series-copy strong { font-size:var(--tablet-body); }
+  .series-copy small { font-size:var(--tablet-small); }
+  .series-actions .text-button { font-size:var(--tablet-body); }
   .series-scope { font-size:var(--tablet-body); gap:12px; }
   .series-scope input { width:24px; height:24px; }
   #delete-series { font-size:var(--tablet-body); }

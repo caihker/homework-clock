@@ -172,3 +172,39 @@ export function weeklySchedule(start, weekdays, {mode, count, until}) {
   const dates = repeatDates(start, weekdays, count);
   return dates.length ? {dates, error: ''} : invalid('请选择有效的重复次数。');
 }
+
+/** Group concrete weekly instances by seriesId for the settings manager. */
+export function seriesGroups(tasks, today) {
+  const groups = new Map();
+  for (const task of Array.isArray(tasks) ? tasks : []) {
+    if (!task?.seriesId) continue;
+    if (!groups.has(task.seriesId)) groups.set(task.seriesId, []);
+    groups.get(task.seriesId).push(task);
+  }
+  const result = [];
+  for (const [id, list] of groups) {
+    list.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    const next = list.find(task => task.date >= today) || null;
+    const representative = next || list[list.length - 1];
+    const weekdays = [...new Set(list.map(task => weekdayOf(task.date)).filter(day => day >= 0))]
+      .sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7));
+    result.push({
+      id,
+      tasks: list,
+      title: representative.title,
+      type: representative.type,
+      start: representative.start,
+      end: representative.end,
+      weekdays,
+      firstDate: list[0].date,
+      lastDate: list[list.length - 1].date,
+      count: list.length,
+      next,
+    });
+  }
+  return result.sort((a, b) => {
+    const aDate = a.next?.date || a.lastDate;
+    const bDate = b.next?.date || b.lastDate;
+    return aDate < bDate ? -1 : aDate > bDate ? 1 : a.title.localeCompare(b.title, 'zh-CN');
+  });
+}

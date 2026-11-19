@@ -7,7 +7,7 @@ import { TURTLE_LINES, createVoicePlayer } from './voice-pack.mjs?v=1';
 import { createBackup, parseBackup, MAX_BACKUP_BYTES } from './backup.mjs';
 import { selectSceneVoice, countSceneVoices } from './scene-voices.mjs';
 import { createSceneVoiceSettings } from './scene-voice-settings.mjs';
-import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, shiftSlot, slotFromDuration, seriesFrom, weeklySchedule, weekdayOf } from './plan-view.mjs';
+import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, shiftSlot, slotFromDuration, seriesFrom, weeklySchedule, weekdayOf, seriesGroups } from './plan-view.mjs';
 import { collectDueReminders } from './reminder-events.mjs';
 import { createUpdateGuard, hasSettingsDraft } from './update-guard.mjs';
 import { createUpdateSession } from './update-session.mjs';
@@ -30,6 +30,7 @@ const UPDATE_LOCK = 'homework-clock-update-lock-v1';
 // even accessing localStorage, rather than only failing a write.
 const stateStorage={getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value),removeItem:key=>localStorage.removeItem(key)};
 const TYPES = TASK_TYPE_LABELS;
+const WEEKDAY_LABELS = ['日','一','二','三','四','五','六'];
 const timePicker = setupTimePicker();
 const defaults = DEFAULT_SETTINGS;
 const actualToday = dateKey(new Date());
@@ -446,6 +447,17 @@ function renderCustomTemplates(){
   const list=state.templates||[];box.hidden=!list.length;
   box.innerHTML=list.map(t=>`<button type="button" data-custom-template="${escape(t.id)}">${escape(t.title)}</button>`).join('');
 }
+function seriesGroupsNow(){return seriesGroups(state.tasks,dateKey(new Date()));}
+function renderSeriesManager(){
+  const box=$('#series-manager');if(!box)return;
+  const groups=seriesGroupsNow();
+  if(!groups.length){box.innerHTML='<p class="muted">还没有重复安排。</p>';return;}
+  box.innerHTML=groups.map(group=>{
+    const days=group.weekdays.map(day=>`周${WEEKDAY_LABELS[day]}`).join('、');
+    const next=group.next?`下次 ${group.next.date}`:'已结束';
+    return `<div class="series-row"><div class="series-copy"><strong>${escape(group.title)}</strong><small>${days} · ${group.start}–${group.end} · ${group.count} 次 · ${next}</small></div><div class="series-actions"><button type="button" class="text-button" data-series-view="${escape(group.id)}" aria-label="查看${escape(group.title)}的下一次安排">查看</button><button type="button" class="text-button danger-text" data-series-delete="${escape(group.id)}" aria-label="删除${escape(group.title)}整组">删除整组</button></div></div>`;
+  }).join('');
+}
 function renderTemplateManager(){
   const box=$('#template-manager');if(!box)return;
   const list=state.templates||[];
@@ -584,6 +596,25 @@ $('#repeat-days').onchange = updateRepeatPreview;
 $('#repeat-weeks').onchange = updateRepeatPreview;
 $('#repeat-until').oninput = updateRepeatPreview;
 $('#next-turtle-word').onclick=renderTurtleWords;
+$('#series-manager').onclick=event=>{
+  const view=event.target.closest('[data-series-view]');
+  const del=event.target.closest('[data-series-delete]');
+  if(!view&&!del)return;
+  const group=seriesGroupsNow().find(item=>item.id===(view?.dataset.seriesView||del.dataset.seriesDelete));
+  if(!group)return;
+  if(view){
+    const target=group.next||group.tasks[group.tasks.length-1];
+    closeDialog($('#settings-dialog'));setDate(target.date);openTask(target.id);
+    return;
+  }
+  confirmAction('删除整个重复系列？',`将删除“${group.title}”的 ${group.count} 次安排（含已完成），不可恢复。`,()=>{
+    const members=group.tasks.map(item=>({...item}));
+    if(state.session&&members.some(item=>item.id===state.session.taskId))stopSession();
+    state.tasks=state.tasks.filter(item=>item.seriesId!==group.id);
+    persist();renderSeriesManager();render();
+    toast(savedNotice(`已删除整组 ${members.length} 次重复。`),()=>{state.tasks.push(...members);persist();renderSeriesManager();render();});
+  });
+};
 $('#template-manager').onclick=e=>{const b=e.target.closest('[data-delete-template]');if(!b)return;const id=b.dataset.deleteTemplate;const t=(state.templates||[]).find(item=>item.id===id);if(!t)return;confirmAction('删除常用计划？',`“${t.title}”将从常用计划中移除，已有安排不受影响。`,()=>{state.templates=(state.templates||[]).filter(item=>item.id!==id);persist();renderTemplateManager();renderCustomTemplates();toast(savedNotice('已删除常用计划。'));});};
 function setTaskFormError(message){$('#form-error').textContent=message;}
 function shiftTaskForm(delta){
@@ -774,6 +805,7 @@ function openSettings(){
   setFamilyTextEditor(false);syncSettingsViewport();
   refreshRecoveryCopyActions();
   renderTemplateManager();
+  renderSeriesManager();
   sceneVoiceSettings.open(state.settings);setSettingsTab('sound');showDialog('#settings-dialog');
 }
 $('#settings-button').onclick=openSettings;

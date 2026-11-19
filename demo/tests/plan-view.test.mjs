@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { dateAtTime } from '../dist/core.mjs';
 import { createSession, pauseSession, resumeSession } from '../dist/session-timer.mjs';
-import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, nowMarkerIndex, shiftSlot, slotFromDuration, weeklyDates, seriesFrom, repeatDates, repeatDatesUntil, weekdayOf } from '../dist/plan-view.mjs';
+import { taskProgress, suggestStartMinutes, compactCountdown, nextTask, nowMarkerIndex, shiftSlot, slotFromDuration, weeklyDates, seriesFrom, repeatDates, repeatDatesUntil, weekdayOf, seriesGroups } from '../dist/plan-view.mjs';
 
 const task = { id: 'math', date: '2026-11-01', title: '数学试卷', start: '10:00', end: '12:00', type: 'study' };
 const at = time => dateAtTime(task.date, time).getTime();
@@ -161,4 +161,33 @@ test('repeatDatesUntil stops on an inclusive end date and refuses invalid ranges
   assert.deepEqual(repeatDatesUntil('2026-11-14', [6], '2026-02-30'), []);
   assert.deepEqual(repeatDatesUntil('2026-11-14', [], '2026-12-05'), []);
   assert.deepEqual(repeatDatesUntil('2026-11-14', [6], '2035-12-31'), []);
+});
+
+test('seriesGroups groups weekly instances, sorts weekdays and exposes the next date', () => {
+  const tasks = [
+    { id: 'a1', seriesId: 's1', date: '2026-11-09', title: '数学', type: 'study', start: '10:00', end: '11:00' },
+    { id: 'a2', seriesId: 's1', date: '2026-11-11', title: '数学', type: 'study', start: '10:00', end: '11:00' },
+    { id: 'a3', seriesId: 's1', date: '2026-11-16', title: '数学', type: 'study', start: '10:00', end: '11:00' },
+    { id: 'b1', seriesId: 's2', date: '2026-11-10', title: '英语', type: 'study', start: '19:00', end: '19:30' },
+    { id: 'x', date: '2026-11-14', title: '单次' },
+  ];
+  const groups = seriesGroups(tasks, '2026-11-14');
+  assert.equal(groups.length, 2);
+  assert.deepEqual(groups.map(group => group.id), ['s2', 's1']);
+  const math = groups.find(group => group.id === 's1');
+  assert.equal(math.title, '数学');
+  assert.equal(math.count, 3);
+  assert.deepEqual(math.weekdays, [1, 3]);
+  assert.equal(math.next.date, '2026-11-16');
+  assert.equal(math.firstDate, '2026-11-09');
+  assert.equal(math.lastDate, '2026-11-16');
+  const english = groups.find(group => group.id === 's2');
+  assert.equal(english.next, null);
+  assert.equal(english.title, '英语');
+});
+
+test('seriesGroups ignores non-series work and empty input', () => {
+  assert.deepEqual(seriesGroups([], '2026-11-14'), []);
+  assert.deepEqual(seriesGroups(null, '2026-11-14'), []);
+  assert.deepEqual(seriesGroups([{ id: 'x', date: '2026-11-14' }], '2026-11-14'), []);
 });

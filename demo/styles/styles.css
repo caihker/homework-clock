@@ -592,3 +592,13 @@ dialog .toast { left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px))
 .repeat-days input { position:absolute; opacity:0; pointer-events:none; }
 .repeat-days label:has(input:checked) { border-color:var(--teal); background:var(--teal-soft); color:var(--teal); }
 .repeat-days label:has(input:focus-visible) { outline:3px solid var(--blue-ink); outline-offset:2px; }
+
+.settings-series { margin-top:14px; border-top:1px solid var(--line); padding-top:12px; }
+.settings-series h3 { font-size:var(--font-16); font-weight:700; margin-bottom:6px; }
+.series-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px dashed var(--line); }
+.series-row:last-child { border-bottom:0; }
+.series-copy { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.series-copy strong { font-size:var(--font-14); overflow-wrap:anywhere; }
+.series-copy small { color:var(--muted); font-size:var(--font-12); line-height:1.5; }
+.series-actions { display:flex; align-items:center; gap:4px; flex:none; }
+.series-actions .text-button { font-size:var(--font-12); }
